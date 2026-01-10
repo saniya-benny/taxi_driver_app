@@ -165,7 +165,7 @@ class _RideDetailSheet extends StatelessWidget {
             const SizedBox(height: 20),
             Row(
               children: const [
-                Icon(Icons.circle, color: Colors.green),
+                Icon(Icons.circle, color: Color(0xFF0B2A3A)),
                 SizedBox(width: 10),
                 Text("Pickup", style: TextStyle(fontSize: 16)),
               ],
@@ -176,7 +176,7 @@ class _RideDetailSheet extends StatelessWidget {
             ),
             Row(
               children: const [
-                Icon(Icons.location_on, color: Colors.red),
+                Icon(Icons.location_on, color: Color(0xFF0B2A3A)),
                 SizedBox(width: 10),
                 Text("Drop", style: TextStyle(fontSize: 16)),
               ],
@@ -196,28 +196,45 @@ class _RideDetailSheet extends StatelessWidget {
               ],
             ),
             const SizedBox(height: 30),
+            const SizedBox(height: 32),
+
             Row(
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
               children: [
                 Expanded(
-                  child: ElevatedButton(
-                    style: ElevatedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(vertical: 15),
-                        backgroundColor: Colors.green.shade600,
-                        shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12))),
-                    onPressed: () {},
-                    child: const Text('Start', style: TextStyle(fontSize: 18)),
+                  child: OutlinedButton(
+                    style: OutlinedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      side: const BorderSide(color: Color(0xFF0B2A3A)),
+                    ),
+                    onPressed: () {
+                      // start ride logic later
+                    },
+                    child: const Text(
+                      'Start Ride',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                        color: Color(0xFF0B2A3A),
+                      ),
+                    ),
                   ),
                 ),
-                const SizedBox(width: 20),
+
+                const SizedBox(width: 16),
+
                 Expanded(
                   child: ElevatedButton(
                     style: ElevatedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(vertical: 15),
-                        backgroundColor: Colors.red.shade600,
-                        shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12))),
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      backgroundColor: const Color(0xFF0B2A3A),
+                      elevation: 0,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                    ),
                     onPressed: () {
                       Navigator.pop(context);
 
@@ -230,12 +247,17 @@ class _RideDetailSheet extends StatelessWidget {
                         ),
                       );
                     },
-
-                    child: const Text('End', style: TextStyle(fontSize: 18)),
+                    child: const Text(
+                      'End Ride',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,color: Colors.white
+                      ),
+                    ),
                   ),
                 ),
               ],
-            )
+            ),
           ],
         ),
       ),
