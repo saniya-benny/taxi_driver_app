@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-
+import 'bill_sheet.dart';
 class RideHistoryPage extends StatelessWidget {
   const RideHistoryPage({super.key});
 
@@ -27,7 +27,17 @@ class RideHistoryPage extends StatelessWidget {
               title: Text('${ride['rider']}', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
               subtitle: Text('Fare: ₹${ride['fare']} - ${ride['status']}\nDate: ${ride['date']}', style: const TextStyle(fontSize: 14)),
               trailing: const Icon(Icons.arrow_forward_ios, size: 18),
-              onTap: () {},
+              onTap: () {
+                showModalBottomSheet(
+                  context: context,
+                  isScrollControlled: true,
+                  backgroundColor: Colors.transparent,
+                  builder: (_) => BillSheet(
+                    amount: ride['fare'].toDouble(),
+                  ),
+                );
+              },
+
             ),
           );
         },
