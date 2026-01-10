@@ -3,6 +3,7 @@ import 'widgets/nav_item.dart';
 import 'pages/assigned_rides_page.dart';
 import 'pages/driver_dashboard_page.dart';
 import 'pages/ride_history_page.dart';
+import 'pages/profile_page.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -17,6 +18,7 @@ class _HomePageState extends State<HomePage> {
     AssignedRidesPage(),
     DriverDashboardPage(),
     RideHistoryPage(),
+    ProfilePage(),
   ];
 
   void _onTabSelected(int index) {
@@ -51,9 +53,30 @@ class _HomePageState extends State<HomePage> {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceAround,
               children: [
-                NavItem(icon: Icons.home, index: 0, isSelected: _currentIndex == 0, onTap: _onTabSelected),
-                NavItem(icon: Icons.drive_eta, index: 1, isSelected: _currentIndex == 1, onTap: _onTabSelected),
-                NavItem(icon: Icons.history, index: 2, isSelected: _currentIndex == 2, onTap: _onTabSelected),
+                NavItem(
+                  icon: Icons.home,
+                  index: 0,
+                  isSelected: _currentIndex == 0,
+                  onTap: _onTabSelected,
+                ),
+                NavItem(
+                  icon: Icons.drive_eta,
+                  index: 1,
+                  isSelected: _currentIndex == 1,
+                  onTap: _onTabSelected,
+                ),
+                NavItem(
+                  icon: Icons.history,
+                  index: 2,
+                  isSelected: _currentIndex == 2,
+                  onTap: _onTabSelected,
+                ),
+                NavItem(
+                  icon: Icons.person,
+                  index: 3,
+                  isSelected: _currentIndex == 3,
+                  onTap: _onTabSelected,
+                ),
               ],
             ),
           ),
