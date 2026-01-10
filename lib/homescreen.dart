@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'widgets/nav_item.dart';
-import 'widgets/assigned_rides_page.dart';
-import 'widgets/driver_dashboard_page.dart';
-import 'widgets/ride_history_page.dart';
+import 'pages/assigned_rides_page.dart';
+import 'pages/driver_dashboard_page.dart';
+import 'pages/ride_history_page.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});

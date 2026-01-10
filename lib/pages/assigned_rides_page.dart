@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'bill_sheet.dart';
+import '../widgets/bill_sheet.dart';
 
 class AssignedRidesPage extends StatelessWidget {
   const AssignedRidesPage({super.key});
