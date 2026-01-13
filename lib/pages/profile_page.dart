@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import '../models/driver_model.dart';
 import '../services/api_client.dart';
 import '../services/api_exceptions.dart';
-
+import 'login_page.dart';
 class ProfilePage extends StatefulWidget {
   const ProfilePage({super.key});
 
@@ -331,8 +331,10 @@ class _ProfilePageState extends State<ProfilePage> {
           ),
           ElevatedButton(
             onPressed: () {
-              Navigator.pop(context);
-              // TODO: Implement logout logic
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => LoginPage()),
+              );
             },
             style: ElevatedButton.styleFrom(
               backgroundColor: const Color(0xFF0B2A3A),

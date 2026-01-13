@@ -71,17 +71,7 @@ class _LoginPageState extends State<LoginPage> {
       backgroundColor: const Color(0xFFF6F7F9),
 
       /// APP BAR
-      appBar: AppBar(
-        backgroundColor: const Color(0xFF0B2A3A),
-        elevation: 0,
-        title: const Text(
-          'Taxi Admin',
-          style: TextStyle(
-            fontWeight: FontWeight.bold,
-            color: Colors.white,
-          ),
-        ),
-      ),
+
 
       /// BODY
       body: SafeArea(

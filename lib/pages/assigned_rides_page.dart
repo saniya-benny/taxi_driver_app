@@ -31,7 +31,6 @@ class _AssignedRidesPageState extends State<AssignedRidesPage> {
     try {
       final response = await _apiClient.getAssignedRides();
       setState(() {
-        // Handle the actual API response structure: {success: true, data: {rides: [...]}}
         if (response['success'] == true && response['data'] != null) {
           final data = response['data'];
           if (data['rides'] is List) {
@@ -40,10 +39,8 @@ class _AssignedRidesPageState extends State<AssignedRidesPage> {
             _rides = [];
           }
         } else if (response['data'] is List) {
-          // Fallback for different structure
           _rides = List<Map<String, dynamic>>.from(response['data']);
         } else if (response['rides'] is List) {
-          // Fallback for different structure
           _rides = List<Map<String, dynamic>>.from(response['rides']);
         } else {
           _rides = [];
@@ -58,12 +55,10 @@ class _AssignedRidesPageState extends State<AssignedRidesPage> {
     }
   }
 
-    @override
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFF6F7F9),
-
-      /// APP BAR (matches screenshot style)
       appBar: AppBar(
         backgroundColor: const Color(0xFF0B2A3A),
         elevation: 0,
@@ -71,8 +66,8 @@ class _AssignedRidesPageState extends State<AssignedRidesPage> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'Taxi Admin',
-              style: TextStyle(fontWeight: FontWeight.bold,color: Colors.white),
+              'Taxi Driver',
+              style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white),
             ),
             SizedBox(height: 4),
             Text(
@@ -96,22 +91,18 @@ class _AssignedRidesPageState extends State<AssignedRidesPage> {
             )
           else
             IconButton(
-              icon: const Icon(Icons.refresh,color: Colors.white),
+              icon: const Icon(Icons.refresh, color: Colors.white),
               onPressed: _loadAssignedRides,
             ),
         ],
       ),
-
-      /// BODY
       body: _buildBody(),
     );
   }
 
   Widget _buildBody() {
     if (_isLoading) {
-      return const Center(
-        child: CircularProgressIndicator(),
-      );
+      return const Center(child: CircularProgressIndicator());
     }
 
     if (_error != null) {
@@ -119,34 +110,20 @@ class _AssignedRidesPageState extends State<AssignedRidesPage> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Icon(
-              Icons.error_outline,
-              size: 64,
-              color: Colors.red,
-            ),
+            const Icon(Icons.error_outline, size: 64, color: Colors.red),
             const SizedBox(height: 16),
-            Text(
+            const Text(
               'Error loading rides',
-              style: const TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.w600,
-                color: Colors.red,
-              ),
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: Colors.red),
             ),
             const SizedBox(height: 8),
             Text(
               _error!,
-              style: const TextStyle(
-                fontSize: 14,
-                color: Colors.grey,
-              ),
+              style: const TextStyle(fontSize: 14, color: Colors.grey),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 16),
-            ElevatedButton(
-              onPressed: _loadAssignedRides,
-              child: const Text('Retry'),
-            ),
+            ElevatedButton(onPressed: _loadAssignedRides, child: const Text('Retry')),
           ],
         ),
       );
@@ -169,7 +146,10 @@ class _AssignedRidesPageState extends State<AssignedRidesPage> {
               context: context,
               isScrollControlled: true,
               backgroundColor: Colors.transparent,
-              builder: (_) => _RideDetailSheet(ride: ride, onRideAction: _loadAssignedRides),
+              builder: (_) => _RideDetailSheet(
+                ride: ride,
+                onRideAction: _loadAssignedRides,
+              ),
             );
           },
           child: Container(
@@ -184,16 +164,12 @@ class _AssignedRidesPageState extends State<AssignedRidesPage> {
               children: [
                 Text(
                   'Ride ID: ${ride['id']?.toString().substring(0, 8) ?? 'Unknown'}',
-                  style: const TextStyle(
-                      fontSize: 18, fontWeight: FontWeight.w600),
+                  style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
                 ),
                 const SizedBox(height: 12),
-
-                _locationRow(
-                    Icons.circle, ride['pickup_address'] ?? 'Pickup location', Colors.green),
+                _locationRow(Icons.circle, ride['pickup_address'] ?? 'Pickup location', Colors.green),
                 const SizedBox(height: 8),
                 _locationRow(Icons.location_on, ride['drop_address'] ?? 'Drop location', Colors.red),
-
                 const SizedBox(height: 12),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -210,7 +186,7 @@ class _AssignedRidesPageState extends State<AssignedRidesPage> {
                       style: const TextStyle(color: Colors.grey),
                     ),
                   ],
-                )
+                ),
               ],
             ),
           ),
@@ -244,7 +220,6 @@ class _AssignedRidesPageState extends State<AssignedRidesPage> {
 
   String _formatDate(String? dateString) {
     if (dateString == null) return 'Unknown';
-    
     try {
       final date = DateTime.parse(dateString);
       return '${date.day}/${date.month}/${date.year} ${date.hour.toString().padLeft(2, '0')}:${date.minute.toString().padLeft(2, '0')}';
@@ -263,13 +238,9 @@ class _EmptyState extends StatelessWidget {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: const [
-          Icon(Icons.assignment_late,
-              size: 64, color: Colors.grey),
+          Icon(Icons.assignment_late, size: 64, color: Colors.grey),
           SizedBox(height: 12),
-          Text(
-            'No live rides',
-            style: TextStyle(color: Colors.grey, fontSize: 16),
-          ),
+          Text('No live rides', style: TextStyle(color: Colors.grey, fontSize: 16)),
         ],
       ),
     );
@@ -294,7 +265,6 @@ class _RideDetailSheetState extends State<_RideDetailSheet> {
 
   String _formatDate(String? dateString) {
     if (dateString == null) return 'Unknown';
-    
     try {
       final date = DateTime.parse(dateString);
       return '${date.day}/${date.month}/${date.year} ${date.hour.toString().padLeft(2, '0')}:${date.minute.toString().padLeft(2, '0')}';
@@ -331,23 +301,31 @@ class _RideDetailSheetState extends State<_RideDetailSheet> {
               ),
             ),
             const SizedBox(height: 20),
-
             Text(
               'Ride ID: ${ride['id']?.toString().substring(0, 8) ?? 'Unknown'}',
-              style:
-              const TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+              style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 20),
-
             _detailRow('Pickup', ride['pickup_address'] ?? 'Pickup location'),
             _detailRow('Drop', ride['drop_address'] ?? 'Drop location'),
-
             const SizedBox(height: 16),
+
+            // ✅ Fixed overflow here using Expanded
             Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text('Status: ${ride['status'] ?? 'Unknown'}'),
-                Text('Requested: ${_formatDate(ride['requested_at'])}'),
+                Expanded(
+                  child: Text(
+                    'Status: ${ride['status'] ?? 'Unknown'}',
+                    style: const TextStyle(fontWeight: FontWeight.w600),
+                  ),
+                ),
+                Expanded(
+                  child: Text(
+                    'Requested: ${_formatDate(ride['requested_at'])}',
+                    textAlign: TextAlign.right,
+                    style: const TextStyle(color: Colors.grey),
+                  ),
+                ),
               ],
             ),
 
@@ -362,28 +340,31 @@ class _RideDetailSheetState extends State<_RideDetailSheet> {
               _isStarting
                   ? const Center(child: CircularProgressIndicator())
                   : OutlinedButton(
-                      onPressed: _startRide,
-                      style: OutlinedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(vertical: 14),
-                        side: const BorderSide(color: Color(0xFF0B2A3A)),
-                      ),
-                      child: const Text(
-                        'Start Ride',
-                        style: TextStyle(color: Color(0xFF0B2A3A)),
-                      ),
-                    ),
+                onPressed: _startRide,
+                style: OutlinedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  side: const BorderSide(color: Color(0xFF0B2A3A)),
+                ),
+                child: const Text(
+                  'Start Ride',
+                  style: TextStyle(color: Color(0xFF0B2A3A)),
+                ),
+              ),
 
             if (ride['status'] == 'in_progress')
               _isEnding
                   ? const Center(child: CircularProgressIndicator())
                   : ElevatedButton(
-                      onPressed: _endRide,
-                      style: ElevatedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(vertical: 14),
-                        backgroundColor: const Color(0xFF0B2A3A),
-                      ),
-                      child: const Text('End Ride',style: TextStyle(color: Colors.white),),
-                    ),
+                onPressed: _endRide,
+                style: ElevatedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  backgroundColor: const Color(0xFF0B2A3A),
+                ),
+                child: const Text(
+                  'End Ride',
+                  style: TextStyle(color: Colors.white),
+                ),
+              ),
           ],
         ),
       ),
@@ -392,7 +373,6 @@ class _RideDetailSheetState extends State<_RideDetailSheet> {
 
   Future<void> _startRide() async {
     setState(() => _isStarting = true);
-    
     try {
       await _apiClient.startRide(widget.ride['id']);
       if (mounted) {
@@ -406,15 +386,12 @@ class _RideDetailSheetState extends State<_RideDetailSheet> {
         );
       }
     } finally {
-      if (mounted) {
-        setState(() => _isStarting = false);
-      }
+      if (mounted) setState(() => _isStarting = false);
     }
   }
 
   Future<void> _endRide() async {
     setState(() => _isEnding = true);
-    
     try {
       await _apiClient.endRide(widget.ride['id']);
       if (mounted) {
@@ -428,9 +405,7 @@ class _RideDetailSheetState extends State<_RideDetailSheet> {
         );
       }
     } finally {
-      if (mounted) {
-        setState(() => _isEnding = false);
-      }
+      if (mounted) setState(() => _isEnding = false);
     }
   }
 
@@ -440,9 +415,7 @@ class _RideDetailSheetState extends State<_RideDetailSheet> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(title,
-              style:
-              const TextStyle(fontWeight: FontWeight.w600, color: Colors.grey)),
+          Text(title, style: const TextStyle(fontWeight: FontWeight.w600, color: Colors.grey)),
           const SizedBox(height: 4),
           Text(value),
         ],
