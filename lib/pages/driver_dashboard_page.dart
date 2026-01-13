@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import '../services/api_client.dart';
+import '../services/api_exceptions.dart';
 
 class DriverDashboardPage extends StatefulWidget {
   const DriverDashboardPage({super.key});
@@ -9,35 +11,55 @@ class DriverDashboardPage extends StatefulWidget {
 
 class _DriverDashboardPageState extends State<DriverDashboardPage> {
   String _selectedPeriod = 'Daily';
+  final ApiClient _apiClient = ApiClient();
+  
+  Map<String, dynamic>? _currentStats;
+  bool _isLoading = true;
+  String? _error;
 
-  final Map<String, Map<String, dynamic>> dashboardData = {
-    'Daily': {
-      "date": "12 Jan 2026",
-      "total_rides": 0,
-      "total_earnings": 0,
-      "total_minutes": 0,
-      "total_hours": 0,
-    },
-    'Weekly': {
-      "date": "Week 2, 2026",
-      "total_rides": 12,
-      "total_earnings": 2400,
-      "total_minutes": 780,
-      "total_hours": 13,
-    },
-    'Monthly': {
-      "date": "January 2026",
-      "total_rides": 46,
-      "total_earnings": 9200,
-      "total_minutes": 3120,
-      "total_hours": 52,
-    },
-  };
+  @override
+  void initState() {
+    super.initState();
+    _loadStats();
+  }
+
+  Future<void> _loadStats() async {
+    setState(() {
+      _isLoading = true;
+      _error = null;
+    });
+
+    try {
+      Map<String, dynamic> response;
+      
+      switch (_selectedPeriod) {
+        case 'Daily':
+          response = await _apiClient.getDailyStats();
+          break;
+        case 'Weekly':
+          response = await _apiClient.getWeeklyStats();
+          break;
+        case 'Monthly':
+          response = await _apiClient.getMonthlyStats();
+          break;
+        default:
+          response = await _apiClient.getDailyStats();
+      }
+
+      setState(() {
+        _currentStats = response['data'];
+        _isLoading = false;
+      });
+    } catch (e) {
+      setState(() {
+        _isLoading = false;
+        _error = e.toString();
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
-    final data = dashboardData[_selectedPeriod]!;
-
     return Scaffold(
       backgroundColor: const Color(0xFFF6F7F9),
 
@@ -50,80 +72,162 @@ class _DriverDashboardPageState extends State<DriverDashboardPage> {
           style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white),
         ),
         actions: [
-          Padding(
-            padding: const EdgeInsets.only(right: 12),
-            child: _PeriodDropdown(
-              value: _selectedPeriod,
-              onChanged: (value) {
-                setState(() => _selectedPeriod = value);
-              },
+          if (_isLoading)
+            const Padding(
+              padding: EdgeInsets.only(right: 12),
+              child: SizedBox(
+                width: 20,
+                height: 20,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                ),
+              ),
+            )
+          else
+            Padding(
+              padding: const EdgeInsets.only(right: 12),
+              child: _PeriodDropdown(
+                value: _selectedPeriod,
+                onChanged: (value) {
+                  setState(() => _selectedPeriod = value);
+                  _loadStats();
+                },
+              ),
             ),
-          ),
         ],
       ),
 
       /// BODY
-      body: Padding(
-        padding: const EdgeInsets.all(16),
+      body: _buildBody(),
+    );
+  }
+
+  Widget _buildBody() {
+    if (_isLoading) {
+      return const Center(
+        child: CircularProgressIndicator(),
+      );
+    }
+
+    if (_error != null) {
+      return Center(
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            /// HEADER
-            Text(
-              'Overview',
-              style: Theme.of(context).textTheme.titleMedium,
+            const Icon(
+              Icons.error_outline,
+              size: 64,
+              color: Colors.red,
             ),
-            const SizedBox(height: 4),
+            const SizedBox(height: 16),
             Text(
-              data['date'],
-              style: const TextStyle(color: Colors.grey),
-            ),
-
-            const SizedBox(height: 20),
-
-            /// STATS GRID
-            GridView(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 2,
-                mainAxisSpacing: 12,
-                crossAxisSpacing: 12,
-                childAspectRatio: 1.4,
+              'Error loading statistics',
+              style: const TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.w600,
+                color: Colors.red,
               ),
-              children: [
-                _StatCard(
-                  icon: Icons.route,
-                  title: 'Total Rides',
-                  value: data['total_rides'].toString(),
-                ),
-                _StatCard(
-                  icon: Icons.currency_rupee,
-                  title: 'Earnings',
-                  value: data['total_earnings'] == 0
-                      ? '—'
-                      : '₹${data['total_earnings']}',
-                ),
-                _StatCard(
-                  icon: Icons.access_time,
-                  title: 'Hours',
-                  value: data['total_hours'] == 0
-                      ? '—'
-                      : '${data['total_hours']} hrs',
-                ),
-                _StatCard(
-                  icon: Icons.timer,
-                  title: 'Minutes',
-                  value: data['total_minutes'] == 0
-                      ? '—'
-                      : '${data['total_minutes']} min',
-                ),
-              ],
+            ),
+            const SizedBox(height: 8),
+            Text(
+              _error!,
+              style: const TextStyle(
+                fontSize: 14,
+                color: Colors.grey,
+              ),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 16),
+            ElevatedButton(
+              onPressed: _loadStats,
+              child: const Text('Retry'),
             ),
           ],
         ),
+      );
+    }
+
+    if (_currentStats == null) {
+      return const Center(
+        child: Text('No statistics available'),
+      );
+    }
+
+    final data = _currentStats!;
+    final date = _getDateDisplay(data);
+
+    return Padding(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          /// HEADER
+          Text(
+            'Overview',
+            style: Theme.of(context).textTheme.titleMedium,
+          ),
+          const SizedBox(height: 4),
+          Text(
+            date,
+            style: const TextStyle(color: Colors.grey),
+          ),
+
+          const SizedBox(height: 20),
+
+          /// STATS GRID
+          GridView(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: 2,
+              mainAxisSpacing: 12,
+              crossAxisSpacing: 12,
+              childAspectRatio: 1.4,
+            ),
+            children: [
+              _StatCard(
+                icon: Icons.route,
+                title: 'Total Rides',
+                value: data['total_rides']?.toString() ?? '0',
+              ),
+              _StatCard(
+                icon: Icons.currency_rupee,
+                title: 'Earnings',
+                value: data['total_earnings'] == null || data['total_earnings'] == 0
+                    ? '—'
+                    : '₹${data['total_earnings']}',
+              ),
+              _StatCard(
+                icon: Icons.access_time,
+                title: 'Hours',
+                value: data['total_hours'] == null || data['total_hours'] == 0
+                    ? '—'
+                    : '${data['total_hours']} hrs',
+              ),
+              _StatCard(
+                icon: Icons.timer,
+                title: 'Minutes',
+                value: data['total_minutes'] == null || data['total_minutes'] == 0
+                    ? '—'
+                    : '${data['total_minutes']} min',
+              ),
+            ],
+          ),
+        ],
       ),
     );
+  }
+
+  String _getDateDisplay(Map<String, dynamic> data) {
+    if (_selectedPeriod == 'Daily' && data['date'] != null) {
+      return data['date'];
+    } else if (_selectedPeriod == 'Weekly' && data['week_start'] != null && data['week_end'] != null) {
+      return '${data['week_start']} - ${data['week_end']}';
+    } else if (_selectedPeriod == 'Monthly' && data['month'] != null) {
+      return data['month'];
+    }
+    return _selectedPeriod;
   }
 }
 

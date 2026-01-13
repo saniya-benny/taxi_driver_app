@@ -4,6 +4,7 @@ import 'pages/assigned_rides_page.dart';
 import 'pages/driver_dashboard_page.dart';
 import 'pages/ride_history_page.dart';
 import 'pages/profile_page.dart';
+import 'pages/statistics_page.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -19,6 +20,7 @@ class _HomePageState extends State<HomePage> {
     AssignedRidesPage(),
     DriverDashboardPage(),
     RideHistoryPage(),
+    StatisticsPage(),
     ProfilePage(),
   ];
 
@@ -66,6 +68,11 @@ class _HomePageState extends State<HomePage> {
             icon: Icon(Icons.history_outlined),
             activeIcon: Icon(Icons.history),
             label: 'History',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.bar_chart_outlined),
+            activeIcon: Icon(Icons.bar_chart),
+            label: 'Statistics',
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.person_outline),

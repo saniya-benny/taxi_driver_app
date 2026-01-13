@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:taxi_driver/homescreen.dart';
+import '../services/api_client.dart';
+import '../services/api_exceptions.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -12,9 +14,11 @@ class _LoginPageState extends State<LoginPage> {
   final _formKey = GlobalKey<FormState>();
   final _phoneController = TextEditingController();
   final _passwordController = TextEditingController();
+  final ApiClient _apiClient = ApiClient();
 
   bool _obscurePassword = true;
   bool _isLoading = false;
+  String? _error;
 
   @override
   void dispose() {
@@ -26,17 +30,39 @@ class _LoginPageState extends State<LoginPage> {
   Future<void> _login() async {
     if (!_formKey.currentState!.validate()) return;
 
-    setState(() => _isLoading = true);
-    await Future.delayed(const Duration(seconds: 2));
+    setState(() {
+      _isLoading = true;
+      _error = null;
+    });
 
-    if (!mounted) return;
+    try {
+      final phoneNumber = _phoneController.text.trim();
+      final password = _passwordController.text.trim();
 
-    setState(() => _isLoading = false);
+      final loginResponse = await _apiClient.driverLogin(phoneNumber, password);
 
-    Navigator.pushReplacement(
-      context,
-      MaterialPageRoute(builder: (_) => const HomePage()),
-    );
+      if (!mounted) return;
+
+      setState(() => _isLoading = false);
+
+      if (loginResponse['success'] == true) {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (_) => const HomePage()),
+        );
+      } else {
+        setState(() {
+          _error = 'Login failed. Please try again.';
+        });
+      }
+    } catch (e) {
+      if (!mounted) return;
+
+      setState(() {
+        _isLoading = false;
+        _error = e is ApiException ? e.message : 'An error occurred during login';
+      });
+    }
   }
 
   @override
@@ -94,6 +120,34 @@ class _LoginPageState extends State<LoginPage> {
                         ),
 
                         const SizedBox(height: 32),
+
+                        /// ERROR MESSAGE
+                        if (_error != null) ...[
+                          Container(
+                            padding: const EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                              color: Colors.red.withOpacity(0.1),
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(color: Colors.red.withOpacity(0.3)),
+                            ),
+                            child: Row(
+                              children: [
+                                const Icon(Icons.error_outline, color: Colors.red, size: 20),
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  child: Text(
+                                    _error!,
+                                    style: const TextStyle(
+                                      color: Colors.red,
+                                      fontSize: 14,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(height: 16),
+                        ],
 
                         /// FORM
                         Form(
