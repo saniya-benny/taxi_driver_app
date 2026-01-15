@@ -6,7 +6,7 @@ import 'api_exceptions.dart';
 class ApiClient {
   static const String baseUrl = "http://10.0.2.2:3000";
   static const String _tokenKey = 'auth_token';
-  
+
   static final ApiClient _instance = ApiClient._internal();
   factory ApiClient() => _instance;
   ApiClient._internal();
@@ -38,10 +38,10 @@ class ApiClient {
 
   // HTTP Headers
   Map<String, String> get _headers => {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json',
-        if (_token != null) 'Authorization': 'Bearer $_token',
-      };
+    'Content-Type': 'application/json',
+    'Accept': 'application/json',
+    if (_token != null) 'Authorization': 'Bearer $_token',
+  };
 
   // HTTP Methods
   Future<Map<String, dynamic>> _handleResponse(http.Response response) async {
@@ -55,7 +55,7 @@ class ApiClient {
         await clearToken();
         throw ApiException('Session expired. Please login again.', 401);
       }
-      
+
       final message = responseBody['message'] ?? 'Request failed';
       throw ApiException(message, response.statusCode);
     }
@@ -63,7 +63,7 @@ class ApiClient {
 
   Future<Map<String, dynamic>> get(String endpoint, {Map<String, String>? queryParams}) async {
     await getToken(); // Ensure token is loaded
-    
+
     final uri = Uri.parse('$baseUrl$endpoint');
     final requestUri = queryParams != null ? uri.replace(queryParameters: queryParams) : uri;
 
@@ -73,7 +73,7 @@ class ApiClient {
 
   Future<Map<String, dynamic>> post(String endpoint, {Map<String, dynamic>? body}) async {
     await getToken(); // Ensure token is loaded
-    
+
     final response = await http.post(
       Uri.parse('$baseUrl$endpoint'),
       headers: _headers,
@@ -84,7 +84,7 @@ class ApiClient {
 
   Future<Map<String, dynamic>> put(String endpoint, {Map<String, dynamic>? body}) async {
     await getToken(); // Ensure token is loaded
-    
+
     final response = await http.put(
       Uri.parse('$baseUrl$endpoint'),
       headers: _headers,
@@ -95,7 +95,7 @@ class ApiClient {
 
   Future<Map<String, dynamic>> delete(String endpoint) async {
     await getToken(); // Ensure token is loaded
-    
+
     final response = await http.delete(
       Uri.parse('$baseUrl$endpoint'),
       headers: _headers,
@@ -158,7 +158,7 @@ class ApiClient {
       'limit': limit.toString(),
       'offset': offset.toString(),
     };
-    
+
     if (startDate != null) queryParams['start_date'] = startDate;
     if (endDate != null) queryParams['end_date'] = endDate;
 

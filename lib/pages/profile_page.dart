@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import '../models/driver_model.dart';
 import '../services/api_client.dart';
 import '../services/api_exceptions.dart';
+import '../services/secure_storage_service.dart';
 import 'login_page.dart';
+
 class ProfilePage extends StatefulWidget {
   const ProfilePage({super.key});
 
@@ -26,25 +28,70 @@ class _ProfilePageState extends State<ProfilePage> {
     try {
       final response = await _apiClient.getDriverProfile();
       final profileResponse = DriverProfileResponse.fromJson(response);
+
+      if (!mounted) return;
+
       setState(() {
         _driverProfile = profileResponse.data.driver;
         _isLoading = false;
         _error = null;
       });
     } catch (e) {
+      if (!mounted) return;
+
       setState(() {
         _isLoading = false;
-        _error = e.toString();
+        _error = e is ApiException ? e.message : e.toString();
       });
     }
+  }
+
+  /// 🔐 REAL LOGOUT (UNCHANGED)
+  Future<void> _logout() async {
+    await SecureStorageService.logout();
+
+    if (!mounted) return;
+
+    Navigator.pushAndRemoveUntil(
+      context,
+      MaterialPageRoute(builder: (_) => const LoginPage()),
+          (route) => false,
+    );
+  }
+
+  void _showLogoutDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Logout'),
+        content: const Text('Are you sure you want to logout?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              Navigator.pop(context);
+              await _logout();
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF0B2A3A),
+            ),
+            child: const Text(
+              'Logout',
+              style: TextStyle(color: Colors.white),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFF6F7F9),
-
-      /// APP BAR
       appBar: AppBar(
         backgroundColor: const Color(0xFF0B2A3A),
         elevation: 0,
@@ -59,13 +106,14 @@ class _ProfilePageState extends State<ProfilePage> {
         actions: [
           if (_isLoading)
             const Padding(
-              padding: EdgeInsets.all(16.0),
+              padding: EdgeInsets.all(16),
               child: SizedBox(
                 width: 20,
                 height: 20,
                 child: CircularProgressIndicator(
                   strokeWidth: 2,
-                  valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                  valueColor:
+                  AlwaysStoppedAnimation<Color>(Colors.white),
                 ),
               ),
             ),
@@ -75,17 +123,13 @@ class _ProfilePageState extends State<ProfilePage> {
           ),
         ],
       ),
-
-      /// BODY
       body: _buildBody(),
     );
   }
 
   Widget _buildBody() {
     if (_isLoading) {
-      return const Center(
-        child: CircularProgressIndicator(),
-      );
+      return const Center(child: CircularProgressIndicator());
     }
 
     if (_error != null) {
@@ -93,29 +137,16 @@ class _ProfilePageState extends State<ProfilePage> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Icon(
-              Icons.error_outline,
-              size: 64,
-              color: Colors.red,
-            ),
+            const Icon(Icons.error_outline,
+                size: 64, color: Colors.red),
             const SizedBox(height: 16),
-            Text(
+            const Text(
               'Error loading profile',
-              style: const TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.w600,
-                color: Colors.red,
-              ),
+              style:
+              TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
             ),
             const SizedBox(height: 8),
-            Text(
-              _error!,
-              style: const TextStyle(
-                fontSize: 14,
-                color: Colors.grey,
-              ),
-              textAlign: TextAlign.center,
-            ),
+            Text(_error!, textAlign: TextAlign.center),
             const SizedBox(height: 16),
             ElevatedButton(
               onPressed: _loadDriverProfile,
@@ -127,9 +158,7 @@ class _ProfilePageState extends State<ProfilePage> {
     }
 
     if (_driverProfile == null) {
-      return const Center(
-        child: Text('No profile data available'),
-      );
+      return const Center(child: Text('No profile data available'));
     }
 
     return ListView(
@@ -142,15 +171,14 @@ class _ProfilePageState extends State<ProfilePage> {
               const CircleAvatar(
                 radius: 44,
                 backgroundColor: Color(0xFF0B2A3A),
-                child: Icon(Icons.person, size: 40, color: Colors.white),
+                child:
+                Icon(Icons.person, size: 40, color: Colors.white),
               ),
               const SizedBox(height: 16),
               Text(
                 _driverProfile!.name,
                 style: const TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.w600,
-                ),
+                    fontSize: 20, fontWeight: FontWeight.w600),
               ),
               const SizedBox(height: 4),
               Text(
@@ -180,7 +208,7 @@ class _ProfilePageState extends State<ProfilePage> {
 
         const SizedBox(height: 32),
 
-        /// STATS SECTION
+        /// STATISTICS
         Container(
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
@@ -211,7 +239,8 @@ class _ProfilePageState extends State<ProfilePage> {
                   Expanded(
                     child: _StatCard(
                       title: 'Total Rides',
-                      value: _driverProfile!.stats.total_rides.toString(),
+                      value:
+                      _driverProfile!.stats.total_rides.toString(),
                       icon: Icons.directions_car,
                     ),
                   ),
@@ -219,7 +248,8 @@ class _ProfilePageState extends State<ProfilePage> {
                   Expanded(
                     child: _StatCard(
                       title: 'Earnings',
-                      value: '₹${_driverProfile!.stats.total_earnings.toStringAsFixed(0)}',
+                      value:
+                      '₹${_driverProfile!.stats.total_earnings.toStringAsFixed(0)}',
                       icon: Icons.attach_money,
                     ),
                   ),
@@ -231,7 +261,9 @@ class _ProfilePageState extends State<ProfilePage> {
                   Expanded(
                     child: _StatCard(
                       title: 'Completed',
-                      value: _driverProfile!.stats.completed_rides.toString(),
+                      value: _driverProfile!
+                          .stats.completed_rides
+                          .toString(),
                       icon: Icons.check_circle,
                     ),
                   ),
@@ -239,7 +271,8 @@ class _ProfilePageState extends State<ProfilePage> {
                   Expanded(
                     child: _StatCard(
                       title: 'Avg Fare',
-                      value: '₹${_driverProfile!.stats.avg_fare.toStringAsFixed(0)}',
+                      value:
+                      '₹${_driverProfile!.stats.avg_fare.toStringAsFixed(0)}',
                       icon: Icons.trending_up,
                     ),
                   ),
@@ -251,28 +284,25 @@ class _ProfilePageState extends State<ProfilePage> {
 
         const SizedBox(height: 24),
 
-        /// INFO SECTION
+        /// INFO ROWS
         _ProfileRow(
           icon: Icons.directions_car,
           title: 'Vehicle Number',
           value: _driverProfile!.vehicle_number,
         ),
         _divider(),
-
         _ProfileRow(
           icon: Icons.badge,
           title: 'License Number',
           value: _driverProfile!.license_number,
         ),
         _divider(),
-
         _ProfileRow(
           icon: Icons.person,
           title: 'Driver ID',
           value: _driverProfile!.id.substring(0, 8),
         ),
         _divider(),
-
         _ProfileRow(
           icon: Icons.calendar_today,
           title: 'Member Since',
@@ -287,21 +317,17 @@ class _ProfilePageState extends State<ProfilePage> {
           child: ElevatedButton(
             style: ElevatedButton.styleFrom(
               backgroundColor: const Color(0xFF0B2A3A),
-              elevation: 0,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(12),
               ),
             ),
-            onPressed: () {
-              _showLogoutDialog();
-            },
+            onPressed: _showLogoutDialog,
             child: const Text(
               'Logout',
               style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w600,
-                color: Colors.white,
-              ),
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.white),
             ),
           ),
         ),
@@ -313,45 +339,12 @@ class _ProfilePageState extends State<ProfilePage> {
     try {
       final date = DateTime.parse(dateString);
       return '${date.day}/${date.month}/${date.year}';
-    } catch (e) {
+    } catch (_) {
       return dateString;
     }
   }
 
-  void _showLogoutDialog() {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Logout'),
-        content: const Text('Are you sure you want to logout?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => LoginPage()),
-              );
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF0B2A3A),
-            ),
-            child: const Text(
-              'Logout',
-              style: TextStyle(color: Colors.white),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _divider() {
-    return const Divider(height: 24);
-  }
+  Widget _divider() => const Divider(height: 24);
 }
 
 /// ================= STATUS BADGE =================
@@ -370,13 +363,15 @@ class _StatusBadge extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+      padding:
+      const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
       decoration: BoxDecoration(
-        color: isActive ? color.withOpacity(0.1) : Colors.grey.withOpacity(0.1),
+        color: isActive
+            ? color.withOpacity(0.1)
+            : Colors.grey.withOpacity(0.1),
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
           color: isActive ? color : Colors.grey,
-          width: 1,
         ),
       ),
       child: Text(
@@ -415,27 +410,20 @@ class _StatCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(
-            icon,
-            size: 20,
-            color: const Color(0xFF0B2A3A),
-          ),
+          Icon(icon, size: 20, color: const Color(0xFF0B2A3A)),
           const SizedBox(height: 8),
           Text(
             value,
             style: const TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.w700,
-              color: Color(0xFF0B2A3A),
-            ),
+                fontSize: 16,
+                fontWeight: FontWeight.w700,
+                color: Color(0xFF0B2A3A)),
           ),
           const SizedBox(height: 2),
           Text(
             title,
-            style: const TextStyle(
-              fontSize: 12,
-              color: Colors.grey,
-            ),
+            style:
+            const TextStyle(fontSize: 12, color: Colors.grey),
           ),
         ],
       ),
@@ -465,18 +453,14 @@ class _ProfileRow extends StatelessWidget {
         Expanded(
           child: Text(
             title,
-            style: const TextStyle(
-              fontSize: 15,
-              color: Colors.grey,
-            ),
+            style:
+            const TextStyle(fontSize: 15, color: Colors.grey),
           ),
         ),
         Text(
           value,
           style: const TextStyle(
-            fontSize: 15,
-            fontWeight: FontWeight.w600,
-          ),
+              fontSize: 15, fontWeight: FontWeight.w600),
         ),
       ],
     );
