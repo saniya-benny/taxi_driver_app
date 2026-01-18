@@ -62,7 +62,7 @@ class _DriverDashboardPageState extends State<DriverDashboardPage> {
         backgroundColor: const Color(0xFF0B2A3A),
         elevation: 0,
         title: const Text(
-          'Taxi Driver',
+          'TraveLink',
           style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white),
         ),
         actions: [
