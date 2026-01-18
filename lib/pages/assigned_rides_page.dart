@@ -66,7 +66,7 @@ class _AssignedRidesPageState extends State<AssignedRidesPage> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'Taxi Driver',
+              'TraveLink',
               style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white),
             ),
             SizedBox(height: 4),
