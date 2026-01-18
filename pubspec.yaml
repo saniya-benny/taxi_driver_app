@@ -29,15 +29,16 @@ dev_dependencies:
   build_runner: ^2.4.11
   flutter_launcher_icons: ^0.14.4
 
-# 🔹 EXACT POSITION (TOP LEVEL — NOT inside flutter)
-flutter_icons:
+# ✅ CORRECT NAME (TOP LEVEL)
+flutter_launcher_icons:
   android: true
   ios: true
   image_path: "assets/taxi_logo.png"
+  adaptive_icon_background: "#FFFFFF"
+  adaptive_icon_foreground: "assets/taxi_logo.png"
 
 flutter:
   uses-material-design: true
 
-  # 🔹 EXACT POSITION (INSIDE flutter)
   assets:
     - assets/taxi_logo.png
