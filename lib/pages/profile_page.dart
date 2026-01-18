@@ -4,6 +4,7 @@ import '../services/api_client.dart';
 import '../services/api_exceptions.dart';
 import '../services/secure_storage_service.dart';
 import 'login_page.dart';
+import 'package:intl/intl.dart';
 
 class ProfilePage extends StatefulWidget {
   const ProfilePage({super.key});
@@ -27,6 +28,11 @@ class _ProfilePageState extends State<ProfilePage> {
   Future<void> _loadDriverProfile() async {
     try {
       final response = await _apiClient.getDriverProfile();
+
+      // DEBUG (optional)
+      print('RAW created_at: ${response['data']['driver']['created_at']}');
+      print('RAW last_login: ${response['data']['driver']['last_login']}');
+
       final profileResponse = DriverProfileResponse.fromJson(response);
 
       if (!mounted) return;
@@ -46,7 +52,6 @@ class _ProfilePageState extends State<ProfilePage> {
     }
   }
 
-  /// 🔐 REAL LOGOUT (UNCHANGED)
   Future<void> _logout() async {
     await SecureStorageService.logout();
 
@@ -62,7 +67,7 @@ class _ProfilePageState extends State<ProfilePage> {
   void _showLogoutDialog() {
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
+      builder: (_) => AlertDialog(
         title: const Text('Logout'),
         content: const Text('Are you sure you want to logout?'),
         actions: [
@@ -78,10 +83,7 @@ class _ProfilePageState extends State<ProfilePage> {
             style: ElevatedButton.styleFrom(
               backgroundColor: const Color(0xFF0B2A3A),
             ),
-            child: const Text(
-              'Logout',
-              style: TextStyle(color: Colors.white),
-            ),
+            child: const Text('Logout', style: TextStyle(color: Colors.white)),
           ),
         ],
       ),
@@ -94,29 +96,8 @@ class _ProfilePageState extends State<ProfilePage> {
       backgroundColor: const Color(0xFFF6F7F9),
       appBar: AppBar(
         backgroundColor: const Color(0xFF0B2A3A),
-        elevation: 0,
-        title: const Text(
-          'Profile',
-          style: TextStyle(
-            fontSize: 20,
-            fontWeight: FontWeight.w600,
-            color: Colors.white,
-          ),
-        ),
+        title: const Text('Profile', style: TextStyle(color: Colors.white)),
         actions: [
-          if (_isLoading)
-            const Padding(
-              padding: EdgeInsets.all(16),
-              child: SizedBox(
-                width: 20,
-                height: 20,
-                child: CircularProgressIndicator(
-                  strokeWidth: 2,
-                  valueColor:
-                  AlwaysStoppedAnimation<Color>(Colors.white),
-                ),
-              ),
-            ),
           IconButton(
             icon: const Icon(Icons.refresh, color: Colors.white),
             onPressed: _loadDriverProfile,
@@ -133,46 +114,23 @@ class _ProfilePageState extends State<ProfilePage> {
     }
 
     if (_error != null) {
-      return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Icon(Icons.error_outline,
-                size: 64, color: Colors.red),
-            const SizedBox(height: 16),
-            const Text(
-              'Error loading profile',
-              style:
-              TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
-            ),
-            const SizedBox(height: 8),
-            Text(_error!, textAlign: TextAlign.center),
-            const SizedBox(height: 16),
-            ElevatedButton(
-              onPressed: _loadDriverProfile,
-              child: const Text('Retry'),
-            ),
-          ],
-        ),
-      );
+      return Center(child: Text(_error!));
     }
 
     if (_driverProfile == null) {
-      return const Center(child: Text('No profile data available'));
+      return const Center(child: Text('No profile data'));
     }
 
     return ListView(
       padding: const EdgeInsets.all(24),
       children: [
-        /// PROFILE HEADER
         Center(
           child: Column(
             children: [
               const CircleAvatar(
                 radius: 44,
                 backgroundColor: Color(0xFF0B2A3A),
-                child:
-                Icon(Icons.person, size: 40, color: Colors.white),
+                child: Icon(Icons.person, color: Colors.white, size: 40),
               ),
               const SizedBox(height: 16),
               Text(
@@ -180,27 +138,9 @@ class _ProfilePageState extends State<ProfilePage> {
                 style: const TextStyle(
                     fontSize: 20, fontWeight: FontWeight.w600),
               ),
-              const SizedBox(height: 4),
               Text(
                 _driverProfile!.phone_number,
                 style: const TextStyle(color: Colors.grey),
-              ),
-              const SizedBox(height: 8),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  _StatusBadge(
-                    label: 'Active',
-                    isActive: _driverProfile!.is_active,
-                    color: Colors.green,
-                  ),
-                  const SizedBox(width: 8),
-                  _StatusBadge(
-                    label: 'Available',
-                    isActive: _driverProfile!.is_available,
-                    color: Colors.blue,
-                  ),
-                ],
               ),
             ],
           ),
@@ -208,83 +148,6 @@ class _ProfilePageState extends State<ProfilePage> {
 
         const SizedBox(height: 32),
 
-        /// STATISTICS
-        Container(
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(12),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.05),
-                blurRadius: 10,
-                offset: const Offset(0, 2),
-              ),
-            ],
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text(
-                'Statistics',
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.w600,
-                  color: Color(0xFF0B2A3A),
-                ),
-              ),
-              const SizedBox(height: 16),
-              Row(
-                children: [
-                  Expanded(
-                    child: _StatCard(
-                      title: 'Total Rides',
-                      value:
-                      _driverProfile!.stats.total_rides.toString(),
-                      icon: Icons.directions_car,
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: _StatCard(
-                      title: 'Earnings',
-                      value:
-                      '₹${_driverProfile!.stats.total_earnings.toStringAsFixed(0)}',
-                      icon: Icons.attach_money,
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 12),
-              Row(
-                children: [
-                  Expanded(
-                    child: _StatCard(
-                      title: 'Completed',
-                      value: _driverProfile!
-                          .stats.completed_rides
-                          .toString(),
-                      icon: Icons.check_circle,
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: _StatCard(
-                      title: 'Avg Fare',
-                      value:
-                      '₹${_driverProfile!.stats.avg_fare.toStringAsFixed(0)}',
-                      icon: Icons.trending_up,
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          ),
-        ),
-
-        const SizedBox(height: 24),
-
-        /// INFO ROWS
         _ProfileRow(
           icon: Icons.directions_car,
           title: 'Vehicle Number',
@@ -298,12 +161,6 @@ class _ProfilePageState extends State<ProfilePage> {
         ),
         _divider(),
         _ProfileRow(
-          icon: Icons.person,
-          title: 'Driver ID',
-          value: _driverProfile!.id.substring(0, 8),
-        ),
-        _divider(),
-        _ProfileRow(
           icon: Icons.calendar_today,
           title: 'Member Since',
           value: _formatDate(_driverProfile!.created_at),
@@ -311,127 +168,30 @@ class _ProfilePageState extends State<ProfilePage> {
 
         const SizedBox(height: 40),
 
-        /// LOGOUT BUTTON
-        SizedBox(
-          height: 48,
-          child: ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF0B2A3A),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
-            ),
-            onPressed: _showLogoutDialog,
-            child: const Text(
-              'Logout',
-              style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w600,
-                  color: Colors.white),
-            ),
+        ElevatedButton(
+          onPressed: _showLogoutDialog,
+          style: ElevatedButton.styleFrom(
+            backgroundColor: const Color(0xFF0B2A3A),
+            padding: const EdgeInsets.symmetric(vertical: 14),
           ),
+          child:
+          const Text('Logout', style: TextStyle(color: Colors.white)),
         ),
       ],
     );
   }
 
-  String _formatDate(String dateString) {
-    try {
-      final date = DateTime.parse(dateString);
-      return '${date.day}/${date.month}/${date.year}';
-    } catch (_) {
-      return dateString;
-    }
+  /// ✅ UI FORMATTING ONLY — NO TIMEZONE LOGIC
+  String _formatDate(DateTime date) {
+    // Force IST display (+5:30)
+    final istDate = date.add(const Duration(hours: 5, minutes: 30));
+
+    return DateFormat('dd/MM/yyyy, hh:mm a').format(istDate);
   }
+
 
   Widget _divider() => const Divider(height: 24);
 }
-
-/// ================= STATUS BADGE =================
-
-class _StatusBadge extends StatelessWidget {
-  final String label;
-  final bool isActive;
-  final Color color;
-
-  const _StatusBadge({
-    required this.label,
-    required this.isActive,
-    required this.color,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding:
-      const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-      decoration: BoxDecoration(
-        color: isActive
-            ? color.withOpacity(0.1)
-            : Colors.grey.withOpacity(0.1),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: isActive ? color : Colors.grey,
-        ),
-      ),
-      child: Text(
-        label,
-        style: TextStyle(
-          fontSize: 12,
-          fontWeight: FontWeight.w600,
-          color: isActive ? color : Colors.grey,
-        ),
-      ),
-    );
-  }
-}
-
-/// ================= STAT CARD =================
-
-class _StatCard extends StatelessWidget {
-  final String title;
-  final String value;
-  final IconData icon;
-
-  const _StatCard({
-    required this.title,
-    required this.value,
-    required this.icon,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: const Color(0xFF0B2A3A).withOpacity(0.05),
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Icon(icon, size: 20, color: const Color(0xFF0B2A3A)),
-          const SizedBox(height: 8),
-          Text(
-            value,
-            style: const TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w700,
-                color: Color(0xFF0B2A3A)),
-          ),
-          const SizedBox(height: 2),
-          Text(
-            title,
-            style:
-            const TextStyle(fontSize: 12, color: Colors.grey),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-/// ================= PROFILE ROW =================
 
 class _ProfileRow extends StatelessWidget {
   final IconData icon;
@@ -451,17 +211,9 @@ class _ProfileRow extends StatelessWidget {
         Icon(icon, color: const Color(0xFF0B2A3A)),
         const SizedBox(width: 16),
         Expanded(
-          child: Text(
-            title,
-            style:
-            const TextStyle(fontSize: 15, color: Colors.grey),
-          ),
+          child: Text(title, style: const TextStyle(color: Colors.grey)),
         ),
-        Text(
-          value,
-          style: const TextStyle(
-              fontSize: 15, fontWeight: FontWeight.w600),
-        ),
+        Text(value, style: const TextStyle(fontWeight: FontWeight.w600)),
       ],
     );
   }

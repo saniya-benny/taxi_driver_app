@@ -182,7 +182,7 @@ class _AssignedRidesPageState extends State<AssignedRidesPage> {
                       ),
                     ),
                     Text(
-                      _formatDate(ride['requested_at']),
+                      formatToIST(ride['requested_at']), // ✅ FIXED
                       style: const TextStyle(color: Colors.grey),
                     ),
                   ],
@@ -263,15 +263,8 @@ class _RideDetailSheetState extends State<_RideDetailSheet> {
   bool _isEnding = false;
   final ApiClient _apiClient = ApiClient();
 
-  String _formatDate(String? dateString) {
-    if (dateString == null) return 'Unknown';
-    try {
-      final date = DateTime.parse(dateString);
-      return '${date.day}/${date.month}/${date.year} ${date.hour.toString().padLeft(2, '0')}:${date.minute.toString().padLeft(2, '0')}';
-    } catch (e) {
-      return dateString;
-    }
-  }
+
+
 
   @override
   Widget build(BuildContext context) {
@@ -321,7 +314,7 @@ class _RideDetailSheetState extends State<_RideDetailSheet> {
                 ),
                 Expanded(
                   child: Text(
-                    'Requested: ${_formatDate(ride['requested_at'])}',
+                    'Requested: ${formatToIST(ride['requested_at'])}',
                     textAlign: TextAlign.right,
                     style: const TextStyle(color: Colors.grey),
                   ),
@@ -331,7 +324,7 @@ class _RideDetailSheetState extends State<_RideDetailSheet> {
 
             if (ride['assigned_at'] != null) ...[
               const SizedBox(height: 8),
-              Text('Assigned: ${_formatDate(ride['assigned_at'])}'),
+              Text('Assigned: ${formatToIST(ride['assigned_at'])}'),
             ],
 
             const SizedBox(height: 32),
@@ -423,3 +416,19 @@ class _RideDetailSheetState extends State<_RideDetailSheet> {
     );
   }
 }
+String formatToIST(String? dateString) {
+  if (dateString == null) return 'Unknown';
+  try {
+    final utcDate = DateTime.parse(dateString);
+    final istDate = utcDate.add(const Duration(hours: 5, minutes: 30));
+
+    return '${istDate.day.toString().padLeft(2, '0')}/'
+        '${istDate.month.toString().padLeft(2, '0')}/'
+        '${istDate.year} '
+        '${istDate.hour.toString().padLeft(2, '0')}:'
+        '${istDate.minute.toString().padLeft(2, '0')}';
+  } catch (e) {
+    return dateString;
+  }
+}
+

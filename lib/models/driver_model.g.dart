@@ -15,8 +15,8 @@ DriverProfile _$DriverProfileFromJson(Map<String, dynamic> json) =>
       vehicle_number: json['vehicle_number'] as String,
       is_active: json['is_active'] as bool,
       is_available: json['is_available'] as bool,
-      created_at: json['created_at'] as String,
-      last_login: json['last_login'] as String,
+      created_at: _dateTimeFromJson(json['created_at'] as String),
+      last_login: _dateTimeFromJson(json['last_login'] as String),
       stats: DriverStats.fromJson(json['stats'] as Map<String, dynamic>),
     );
 
@@ -29,8 +29,8 @@ Map<String, dynamic> _$DriverProfileToJson(DriverProfile instance) =>
       'vehicle_number': instance.vehicle_number,
       'is_active': instance.is_active,
       'is_available': instance.is_available,
-      'created_at': instance.created_at,
-      'last_login': instance.last_login,
+      'created_at': _dateTimeToJson(instance.created_at),
+      'last_login': _dateTimeToJson(instance.last_login),
       'stats': instance.stats,
     };
 

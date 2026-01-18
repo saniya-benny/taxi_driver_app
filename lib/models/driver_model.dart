@@ -11,8 +11,13 @@ class DriverProfile {
   final String vehicle_number;
   final bool is_active;
   final bool is_available;
-  final String created_at;
-  final String last_login;
+
+  @JsonKey(fromJson: _dateTimeFromJson, toJson: _dateTimeToJson)
+  final DateTime created_at;
+
+  @JsonKey(fromJson: _dateTimeFromJson, toJson: _dateTimeToJson)
+  final DateTime last_login;
+
   final DriverStats stats;
 
   DriverProfile({
@@ -82,4 +87,27 @@ class DriverProfileData {
       _$DriverProfileDataFromJson(json);
 
   Map<String, dynamic> toJson() => _$DriverProfileDataToJson(this);
+}
+
+/// =======================================================
+/// DATE & TIME HANDLING — BACKEND SENDS UTC (NO TIMEZONE)
+/// Convert UTC → IST (Asia/Kolkata) EXACTLY ONCE
+/// =======================================================
+
+DateTime _dateTimeFromJson(String value) {
+  // Normalize "yyyy-MM-dd HH:mm:ss" → ISO
+  final normalized = value.contains(' ')
+      ? value.replaceFirst(' ', 'T')
+      : value;
+
+  // Treat backend time as UTC
+  final utcTime = DateTime.parse(normalized).toUtc();
+
+  // Convert UTC → IST (+05:30)
+  return utcTime.add(const Duration(hours: 5, minutes: 30));
+}
+
+String _dateTimeToJson(DateTime date) {
+  // Always send UTC back to backend
+  return date.toUtc().toIso8601String();
 }
