@@ -75,10 +75,12 @@ class _LoginPageState extends State<LoginPage> {
       debugPrint('LOGIN ERROR: $e');
 
       setState(() {
-        _error =
-        e is ApiException ? e.message : 'Something went wrong';
+        _error = e is ApiException
+            ? e.message
+            : 'Something went wrong';
       });
-    } finally {
+    }
+    finally {
       if (mounted) {
         setState(() => _isLoading = false);
       }

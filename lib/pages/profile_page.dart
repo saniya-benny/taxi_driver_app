@@ -43,6 +43,11 @@ class _ProfilePageState extends State<ProfilePage> {
         _error = null;
       });
     } catch (e) {
+      //  If session expired, ApiClient already redirected to Login
+      if (e is ApiException && e.statusCode == 401) {
+        return;
+      }
+
       if (!mounted) return;
 
       setState(() {

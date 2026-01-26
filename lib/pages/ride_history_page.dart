@@ -54,11 +54,16 @@ class _RideHistoryPageState extends State<RideHistoryPage> {
         _isLoading = false;
       });
     } catch (e) {
+      if (e is ApiException && e.statusCode == 401) {
+        return;
+      }
+
       setState(() {
         _isLoading = false;
         _error = e.toString();
       });
     }
+
   }
 
     @override

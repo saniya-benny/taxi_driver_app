@@ -48,6 +48,10 @@ class _AssignedRidesPageState extends State<AssignedRidesPage> {
         _isLoading = false;
       });
     } catch (e) {
+      if (e is ApiException && e.statusCode == 401) {
+        return;
+      }
+
       setState(() {
         _isLoading = false;
         _error = e.toString();
@@ -67,7 +71,10 @@ class _AssignedRidesPageState extends State<AssignedRidesPage> {
           children: [
             Text(
               'TraveLink',
-              style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white),
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                color: Colors.white,
+              ),
             ),
             SizedBox(height: 4),
             Text(
@@ -114,7 +121,11 @@ class _AssignedRidesPageState extends State<AssignedRidesPage> {
             const SizedBox(height: 16),
             const Text(
               'Error loading rides',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: Colors.red),
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.w600,
+                color: Colors.red,
+              ),
             ),
             const SizedBox(height: 8),
             Text(
@@ -123,7 +134,10 @@ class _AssignedRidesPageState extends State<AssignedRidesPage> {
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 16),
-            ElevatedButton(onPressed: _loadAssignedRides, child: const Text('Retry')),
+            ElevatedButton(
+              onPressed: _loadAssignedRides,
+              child: const Text('Retry'),
+            ),
           ],
         ),
       );
@@ -164,12 +178,23 @@ class _AssignedRidesPageState extends State<AssignedRidesPage> {
               children: [
                 Text(
                   'Ride ID: ${ride['id']?.toString().substring(0, 8) ?? 'Unknown'}',
-                  style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
+                  style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
                 const SizedBox(height: 12),
-                _locationRow(Icons.circle, ride['pickup_address'] ?? 'Pickup location', Colors.green),
+                _locationRow(
+                  Icons.circle,
+                  ride['pickup_address'] ?? 'Pickup location',
+                  Colors.green,
+                ),
                 const SizedBox(height: 8),
-                _locationRow(Icons.location_on, ride['drop_address'] ?? 'Drop location', Colors.red),
+                _locationRow(
+                  Icons.location_on,
+                  ride['drop_address'] ?? 'Drop location',
+                  Colors.red,
+                ),
                 const SizedBox(height: 12),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -240,7 +265,10 @@ class _EmptyState extends StatelessWidget {
         children: const [
           Icon(Icons.assignment_late, size: 64, color: Colors.grey),
           SizedBox(height: 12),
-          Text('No live rides', style: TextStyle(color: Colors.grey, fontSize: 16)),
+          Text(
+            'No live rides',
+            style: TextStyle(color: Colors.grey, fontSize: 16),
+          ),
         ],
       ),
     );
@@ -262,9 +290,6 @@ class _RideDetailSheetState extends State<_RideDetailSheet> {
   bool _isStarting = false;
   bool _isEnding = false;
   final ApiClient _apiClient = ApiClient();
-
-
-
 
   @override
   Widget build(BuildContext context) {
@@ -333,31 +358,31 @@ class _RideDetailSheetState extends State<_RideDetailSheet> {
               _isStarting
                   ? const Center(child: CircularProgressIndicator())
                   : OutlinedButton(
-                onPressed: _startRide,
-                style: OutlinedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(vertical: 14),
-                  side: const BorderSide(color: Color(0xFF0B2A3A)),
-                ),
-                child: const Text(
-                  'Start Ride',
-                  style: TextStyle(color: Color(0xFF0B2A3A)),
-                ),
-              ),
+                      onPressed: _startRide,
+                      style: OutlinedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        side: const BorderSide(color: Color(0xFF0B2A3A)),
+                      ),
+                      child: const Text(
+                        'Start Ride',
+                        style: TextStyle(color: Color(0xFF0B2A3A)),
+                      ),
+                    ),
 
             if (ride['status'] == 'in_progress')
               _isEnding
                   ? const Center(child: CircularProgressIndicator())
                   : ElevatedButton(
-                onPressed: _endRide,
-                style: ElevatedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(vertical: 14),
-                  backgroundColor: const Color(0xFF0B2A3A),
-                ),
-                child: const Text(
-                  'End Ride',
-                  style: TextStyle(color: Colors.white),
-                ),
-              ),
+                      onPressed: _endRide,
+                      style: ElevatedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        backgroundColor: const Color(0xFF0B2A3A),
+                      ),
+                      child: const Text(
+                        'End Ride',
+                        style: TextStyle(color: Colors.white),
+                      ),
+                    ),
           ],
         ),
       ),
@@ -373,10 +398,14 @@ class _RideDetailSheetState extends State<_RideDetailSheet> {
         widget.onRideAction();
       }
     } catch (e) {
+      if (e is ApiException && e.statusCode == 401) {
+        return; // 🔥 already redirected
+      }
+
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to start ride: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Failed to start ride: $e')));
       }
     } finally {
       if (mounted) setState(() => _isStarting = false);
@@ -392,10 +421,14 @@ class _RideDetailSheetState extends State<_RideDetailSheet> {
         widget.onRideAction();
       }
     } catch (e) {
+      if (e is ApiException && e.statusCode == 401) {
+        return; // 🔥 already redirected
+      }
+
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to end ride: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Failed to end ride: $e')));
       }
     } finally {
       if (mounted) setState(() => _isEnding = false);
@@ -408,7 +441,13 @@ class _RideDetailSheetState extends State<_RideDetailSheet> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(title, style: const TextStyle(fontWeight: FontWeight.w600, color: Colors.grey)),
+          Text(
+            title,
+            style: const TextStyle(
+              fontWeight: FontWeight.w600,
+              color: Colors.grey,
+            ),
+          ),
           const SizedBox(height: 4),
           Text(value),
         ],
@@ -416,6 +455,7 @@ class _RideDetailSheetState extends State<_RideDetailSheet> {
     );
   }
 }
+
 String formatToIST(String? dateString) {
   if (dateString == null) return 'Unknown';
   try {
@@ -431,4 +471,3 @@ String formatToIST(String? dateString) {
     return dateString;
   }
 }
-

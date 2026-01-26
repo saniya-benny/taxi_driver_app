@@ -21,7 +21,10 @@ class _SplashScreenState extends State<SplashScreen> {
   }
 
   Future<void> _checkLogin() async {
+    await Future.delayed(const Duration(milliseconds: 300));
     bool loggedIn = await SecureStorageService.isLoggedIn();
+
+    if (!mounted) return;
 
     if (loggedIn) {
       Navigator.pushReplacement(

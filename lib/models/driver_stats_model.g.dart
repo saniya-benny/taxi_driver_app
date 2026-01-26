@@ -7,8 +7,8 @@ part of 'driver_stats_model.dart';
 // **************************************************************************
 
 DailyStats _$DailyStatsFromJson(Map<String, dynamic> json) => DailyStats(
-  date: json['date'] as String,
-  total_rides: json['total_rides'] as String,
+  date: json['date'] as String?,
+  total_rides: json['total_rides'] as String?,
   total_earnings: json['total_earnings'] as String?,
   total_minutes: json['total_minutes'] as String?,
   total_hours: json['total_hours'] as String?,
@@ -24,12 +24,12 @@ Map<String, dynamic> _$DailyStatsToJson(DailyStats instance) =>
     };
 
 WeeklyStats _$WeeklyStatsFromJson(Map<String, dynamic> json) => WeeklyStats(
-  week_start: json['week_start'] as String,
-  week_end: json['week_end'] as String,
-  total_rides: json['total_rides'] as String,
-  total_earnings: json['total_earnings'] as String,
-  total_minutes: json['total_minutes'] as String,
-  total_hours: json['total_hours'] as String,
+  week_start: json['week_start'] as String?,
+  week_end: json['week_end'] as String?,
+  total_rides: json['total_rides'] as String?,
+  total_earnings: json['total_earnings'] as String?,
+  total_minutes: json['total_minutes'] as String?,
+  total_hours: json['total_hours'] as String?,
 );
 
 Map<String, dynamic> _$WeeklyStatsToJson(WeeklyStats instance) =>
@@ -43,11 +43,11 @@ Map<String, dynamic> _$WeeklyStatsToJson(WeeklyStats instance) =>
     };
 
 MonthlyStats _$MonthlyStatsFromJson(Map<String, dynamic> json) => MonthlyStats(
-  month: json['month'] as String,
-  total_rides: json['total_rides'] as String,
-  total_earnings: json['total_earnings'] as String,
-  total_minutes: json['total_minutes'] as String,
-  total_hours: json['total_hours'] as String,
+  month: json['month'] as String?,
+  total_rides: json['total_rides'] as String?,
+  total_earnings: json['total_earnings'] as String?,
+  total_minutes: json['total_minutes'] as String?,
+  total_hours: json['total_hours'] as String?,
 );
 
 Map<String, dynamic> _$MonthlyStatsToJson(MonthlyStats instance) =>
@@ -64,7 +64,7 @@ StatsResponse<T> _$StatsResponseFromJson<T>(
   T Function(Object? json) fromJsonT,
 ) => StatsResponse<T>(
   success: json['success'] as bool,
-  data: fromJsonT(json['data']),
+  data: _$nullableGenericFromJson(json['data'], fromJsonT),
 );
 
 Map<String, dynamic> _$StatsResponseToJson<T>(
@@ -72,5 +72,15 @@ Map<String, dynamic> _$StatsResponseToJson<T>(
   Object? Function(T value) toJsonT,
 ) => <String, dynamic>{
   'success': instance.success,
-  'data': toJsonT(instance.data),
+  'data': _$nullableGenericToJson(instance.data, toJsonT),
 };
+
+T? _$nullableGenericFromJson<T>(
+  Object? input,
+  T Function(Object? json) fromJson,
+) => input == null ? null : fromJson(input);
+
+Object? _$nullableGenericToJson<T>(
+  T? input,
+  Object? Function(T value) toJson,
+) => input == null ? null : toJson(input);

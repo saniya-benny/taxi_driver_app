@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import '../services/api_client.dart';
+import '../services/api_exceptions.dart';
+
 
 class DriverDashboardPage extends StatefulWidget {
   const DriverDashboardPage({super.key});
@@ -47,6 +49,10 @@ class _DriverDashboardPageState extends State<DriverDashboardPage> {
         _isLoading = false;
       });
     } catch (e) {
+      if (e is ApiException && e.statusCode == 401) {
+        return; // 🔥 already redirected to Login by ApiClient
+      }
+
       setState(() {
         _isLoading = false;
         _error = e.toString();

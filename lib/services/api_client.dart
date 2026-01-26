@@ -2,6 +2,9 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'api_exceptions.dart';
+import 'package:taxi_driver/pages/login_page.dart';
+import 'package:taxi_driver/main.dart';
+import 'package:flutter/material.dart';
 
 class ApiClient {
   static const String baseUrl = "https://api.lenienttree.org";
@@ -53,6 +56,10 @@ class ApiClient {
       // Handle 401 Unauthorized - clear token and redirect to login
       if (response.statusCode == 401) {
         await clearToken();
+        navigatorKey.currentState?.pushAndRemoveUntil(
+          MaterialPageRoute(builder: (_) => LoginPage()),
+              (route) => false,
+        );
         throw ApiException('Session expired. Please login again.', 401);
       }
 
