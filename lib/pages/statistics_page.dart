@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../models/driver_stats_model.dart';
 import '../services/api_client.dart';
 import '../services/api_exceptions.dart';
+import '../widgets/no_internet_screen.dart';
 
 class StatisticsPage extends StatefulWidget {
   const StatisticsPage({super.key});
@@ -20,6 +21,7 @@ class _StatisticsPageState extends State<StatisticsPage>
   MonthlyStats? _monthlyStats;
 
   bool _isLoading = true;
+  bool _noInternet = false;
   String? _error;
 
   @override
@@ -39,33 +41,27 @@ class _StatisticsPageState extends State<StatisticsPage>
     setState(() {
       _isLoading = true;
       _error = null;
+      _noInternet = false;
     });
 
     try {
-      // ✅ Daily (required)
       final daily = await _apiClient.getDailyStats();
-      debugPrint('DAILY OK');
-
-      // ✅ Weekly (required)
       final weekly = await _apiClient.getWeeklyStats();
-      debugPrint('WEEKLY OK');
 
-      // ⚠️ Monthly (optional)
       Map<String, dynamic>? monthly;
       try {
         monthly = await _apiClient.getMonthlyStats();
-        debugPrint('MONTHLY OK');
-      } catch (e) {
-        debugPrint('MONTHLY FAILED (ignored): $e');
+      } catch (_) {
+        // monthly is optional → ignore failure
       }
+
+      if (!mounted) return;
 
       setState(() {
         _dailyStats =
         daily['data'] != null ? DailyStats.fromJson(daily['data']) : null;
-
         _weeklyStats =
         weekly['data'] != null ? WeeklyStats.fromJson(weekly['data']) : null;
-
         _monthlyStats =
         monthly != null && monthly['data'] != null
             ? MonthlyStats.fromJson(monthly['data'])
@@ -74,18 +70,24 @@ class _StatisticsPageState extends State<StatisticsPage>
         _isLoading = false;
       });
     } catch (e) {
-      if (e is ApiException && e.statusCode == 401) return;
+      if (!mounted) return;
 
-      debugPrint('STATISTICS ERROR: $e');
+      if (e is ApiException && e.message == 'NO_INTERNET') {
+        setState(() {
+          _isLoading = false;
+          _noInternet = true;
+        });
+        return;
+      }
+
+      if (e is ApiException && e.statusCode == 401) return;
 
       setState(() {
         _isLoading = false;
         _error = e.toString();
       });
     }
-
   }
-
 
   @override
   Widget build(BuildContext context) {
@@ -129,6 +131,10 @@ class _StatisticsPageState extends State<StatisticsPage>
       return const Center(child: CircularProgressIndicator());
     }
 
+    if (_noInternet) {
+      return NoInternetScreen(onRetry: _loadAllStats);
+    }
+
     if (_error != null) {
       return Center(
         child: Column(
@@ -147,7 +153,7 @@ class _StatisticsPageState extends State<StatisticsPage>
             const SizedBox(height: 8),
             Text(
               _error!,
-              style: const TextStyle(fontSize: 14, color: Colors.grey),
+              style: const TextStyle(color: Colors.grey),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 16),
@@ -163,155 +169,36 @@ class _StatisticsPageState extends State<StatisticsPage>
     return TabBarView(
       controller: _tabController,
       children: [
-        _DailyStatsView(stats: _dailyStats),
-        _WeeklyStatsView(stats: _weeklyStats),
-        _MonthlyStatsView(stats: _monthlyStats),
-      ],
-    );
-  }
-}
-
-/// ================= DAILY =================
-
-class _DailyStatsView extends StatelessWidget {
-  final DailyStats? stats;
-  const _DailyStatsView({this.stats});
-
-  @override
-  Widget build(BuildContext context) {
-    if (stats == null) {
-      return const Center(child: Text('No daily statistics available'));
-    }
-
-    return _StatsCard(
-      title: 'Daily Summary',
-      date: stats!.date ?? '—',
-
-      stats: [
-        _StatItem(
-          icon: Icons.directions_car,
-          label: 'Total Rides',
-          value: stats!.totalRides.toString(),
-          color: Colors.blue,
+        _StatsView(
+          title: 'Daily Summary',
+          date: _dailyStats?.date ?? '—',
+          stats: _dailyStats,
         ),
-        _StatItem(
-          icon: Icons.attach_money,
-          label: 'Earnings',
-          value: '₹${stats!.totalEarnings.toStringAsFixed(0)}',
-          color: Colors.green,
+        _StatsView(
+          title: 'Weekly Summary',
+          date: _weeklyStats == null
+              ? '—'
+              : '${_weeklyStats!.week_start} to ${_weeklyStats!.week_end}',
+          stats: _weeklyStats,
         ),
-        _StatItem(
-          icon: Icons.access_time,
-          label: 'Total Time',
-          value: '${stats!.totalHours.toStringAsFixed(1)} hrs',
-          color: Colors.orange,
+        _StatsView(
+          title: 'Monthly Summary',
+          date: _monthlyStats?.month ?? '—',
+          stats: _monthlyStats,
         ),
       ],
     );
   }
 }
 
-/// ================= WEEKLY =================
+/// ================= COMMON CARD =================
 
-class _WeeklyStatsView extends StatelessWidget {
-  final WeeklyStats? stats;
-  const _WeeklyStatsView({this.stats});
-
-  @override
-  Widget build(BuildContext context) {
-    if (stats == null) {
-      return const Center(child: Text('No weekly statistics available'));
-    }
-
-    return _StatsCard(
-      title: 'Weekly Summary',
-      date: '${stats!.week_start ?? '—'} to ${stats!.week_end ?? '—'}',
-      stats: [
-        _StatItem(
-          icon: Icons.directions_car,
-          label: 'Total Rides',
-          value: stats!.totalRides.toString(),
-          color: Colors.blue,
-        ),
-        _StatItem(
-          icon: Icons.attach_money,
-          label: 'Earnings',
-          value: '₹${stats!.totalEarnings.toStringAsFixed(0)}',
-          color: Colors.green,
-        ),
-        _StatItem(
-          icon: Icons.access_time,
-          label: 'Total Time',
-          value: '${stats!.totalHours.toStringAsFixed(1)} hrs',
-          color: Colors.orange,
-        ),
-      ],
-    );
-  }
-}
-
-/// ================= MONTHLY =================
-
-class _MonthlyStatsView extends StatelessWidget {
-  final MonthlyStats? stats;
-  const _MonthlyStatsView({this.stats});
-
-  @override
-  Widget build(BuildContext context) {
-    if (stats == null) {
-      return const Center(child: Text('No monthly statistics available'));
-    }
-
-    return _StatsCard(
-      title: 'Monthly Summary',
-      date: _formatMonth(stats!.month),
-      stats: [
-        _StatItem(
-          icon: Icons.directions_car,
-          label: 'Total Rides',
-          value: stats!.totalRides.toString(),
-          color: Colors.blue,
-        ),
-        _StatItem(
-          icon: Icons.attach_money,
-          label: 'Earnings',
-          value: '₹${stats!.totalEarnings.toStringAsFixed(0)}',
-          color: Colors.green,
-        ),
-        _StatItem(
-          icon: Icons.access_time,
-          label: 'Total Time',
-          value: '${stats!.totalHours.toStringAsFixed(1)} hrs',
-          color: Colors.orange,
-        ),
-      ],
-    );
-  }
-
-  String _formatMonth(String? monthString) {
-    if (monthString == null || monthString.isEmpty) return '—';
-
-    try {
-      final date = DateTime.parse(monthString);
-      const months = [
-        'January','February','March','April','May','June',
-        'July','August','September','October','November','December'
-      ];
-      return '${months[date.month - 1]} ${date.year}';
-    } catch (_) {
-      return monthString;
-    }
-  }
-}
-
-/// ================= COMMON UI =================
-
-class _StatsCard extends StatelessWidget {
+class _StatsView extends StatelessWidget {
   final String title;
   final String date;
-  final List<_StatItem> stats;
+  final dynamic stats;
 
-  const _StatsCard({
+  const _StatsView({
     required this.title,
     required this.date,
     required this.stats,
@@ -319,10 +206,13 @@ class _StatsCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    if (stats == null) {
+      return const Center(child: Text('No data available'));
+    }
+
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16),
       child: Container(
-        width: double.infinity,
         padding: const EdgeInsets.all(20),
         decoration: BoxDecoration(
           color: Colors.white,
@@ -347,12 +237,14 @@ class _StatsCard extends StatelessWidget {
             Text(date,
                 style: const TextStyle(fontSize: 14, color: Colors.grey)),
             const SizedBox(height: 24),
-            ...stats.map(
-                  (stat) => Padding(
-                padding: const EdgeInsets.only(bottom: 16),
-                child: _StatItemWidget(stat: stat),
-              ),
-            ),
+
+            _StatRow('Total Rides', stats.totalRides.toString(), Icons.route),
+            _StatRow('Earnings', '₹${stats.totalEarnings.toStringAsFixed(0)}',
+                Icons.currency_rupee),
+            _StatRow(
+                'Total Time',
+                '${stats.totalHours.toStringAsFixed(1)} hrs',
+                Icons.access_time),
           ],
         ),
       ),
@@ -360,57 +252,29 @@ class _StatsCard extends StatelessWidget {
   }
 }
 
-class _StatItemWidget extends StatelessWidget {
-  final _StatItem stat;
-  const _StatItemWidget({required this.stat});
+class _StatRow extends StatelessWidget {
+  final String label;
+  final String value;
+  final IconData icon;
+
+  const _StatRow(this.label, this.value, this.icon);
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: stat.color.withOpacity(0.1),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: stat.color.withOpacity(0.2)),
-      ),
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 16),
       child: Row(
         children: [
-          Icon(stat.icon, color: stat.color, size: 20),
+          Icon(icon, color: const Color(0xFF0B2A3A)),
           const SizedBox(width: 16),
           Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(stat.label,
-                    style: const TextStyle(
-                        fontSize: 14,
-                        color: Colors.grey,
-                        fontWeight: FontWeight.w500)),
-                const SizedBox(height: 2),
-                Text(stat.value,
-                    style: const TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.w700,
-                        color: Color(0xFF0B2A3A))),
-              ],
-            ),
+            child: Text(label, style: const TextStyle(color: Colors.grey)),
           ),
+          Text(value,
+              style:
+              const TextStyle(fontWeight: FontWeight.w700, fontSize: 16)),
         ],
       ),
     );
   }
-}
-
-class _StatItem {
-  final IconData icon;
-  final String label;
-  final String value;
-  final Color color;
-
-  _StatItem({
-    required this.icon,
-    required this.label,
-    required this.value,
-    required this.color,
-  });
 }

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import '../services/api_client.dart';
 import '../services/api_exceptions.dart';
-
+import '../widgets/no_internet_screen.dart';
 
 class DriverDashboardPage extends StatefulWidget {
   const DriverDashboardPage({super.key});
@@ -17,6 +17,7 @@ class _DriverDashboardPageState extends State<DriverDashboardPage> {
   Map<String, dynamic>? _currentStats;
   bool _isLoading = true;
   String? _error;
+  bool _noInternet = false; // ✅ KEY FIX
 
   @override
   void initState() {
@@ -28,6 +29,7 @@ class _DriverDashboardPageState extends State<DriverDashboardPage> {
     setState(() {
       _isLoading = true;
       _error = null;
+      _noInternet = false;
     });
 
     try {
@@ -49,8 +51,18 @@ class _DriverDashboardPageState extends State<DriverDashboardPage> {
         _isLoading = false;
       });
     } catch (e) {
+      // 🔌 NO INTERNET → SWITCH UI (NO NAVIGATION)
+      if (e is ApiException && e.message == 'NO_INTERNET') {
+        setState(() {
+          _noInternet = true;
+          _isLoading = false;
+        });
+        return;
+      }
+
+      // 🔐 SESSION EXPIRED (handled globally)
       if (e is ApiException && e.statusCode == 401) {
-        return; // 🔥 already redirected to Login by ApiClient
+        return;
       }
 
       setState(() {
@@ -89,6 +101,13 @@ class _DriverDashboardPageState extends State<DriverDashboardPage> {
   }
 
   Widget _buildBody() {
+    // ✅ NO INTERNET UI (INSIDE PAGE)
+    if (_noInternet) {
+      return NoInternetScreen(
+        onRetry: _loadStats,
+      );
+    }
+
     if (_isLoading) {
       return const Center(child: CircularProgressIndicator());
     }
@@ -110,7 +129,7 @@ class _DriverDashboardPageState extends State<DriverDashboardPage> {
           Text(date, style: const TextStyle(color: Colors.grey)),
           const SizedBox(height: 20),
 
-          /// ✅ FIXED GRID
+          /// ✅ GRID STAYS INSIDE PAGE
           GridView.builder(
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
@@ -119,7 +138,7 @@ class _DriverDashboardPageState extends State<DriverDashboardPage> {
               crossAxisCount: 2,
               mainAxisSpacing: 12,
               crossAxisSpacing: 12,
-              childAspectRatio: 1.25, // ⭐ MORE HEIGHT → NO OVERFLOW
+              childAspectRatio: 1.25,
             ),
             itemBuilder: (context, index) {
               final items = [
@@ -200,12 +219,15 @@ class _PeriodDropdown extends StatelessWidget {
           borderRadius: BorderRadius.circular(20),
         ),
         child: Row(
-          children: [
-            Text(value,
-                style: const TextStyle(
-                    color: Colors.white, fontWeight: FontWeight.w600)),
-            const Icon(Icons.keyboard_arrow_down,
-                color: Colors.white),
+          children: const [
+            Text(
+              '',
+              style: TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            Icon(Icons.keyboard_arrow_down, color: Colors.white),
           ],
         ),
       ),
@@ -227,7 +249,7 @@ class _StatItem {
   });
 }
 
-/// ================= STAT CARD (NO OVERFLOW) =================
+/// ================= STAT CARD =================
 
 class _StatCard extends StatelessWidget {
   final _StatItem item;
@@ -247,7 +269,7 @@ class _StatCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Icon(item.icon, color: const Color(0xFF0B2A3A), size: 24),
-          const Spacer(), // ⭐ KEY FIX
+          const Spacer(),
           Text(
             item.value,
             maxLines: 1,

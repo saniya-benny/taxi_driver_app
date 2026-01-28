@@ -5,6 +5,7 @@ import '../services/api_exceptions.dart';
 import '../services/secure_storage_service.dart';
 import 'login_page.dart';
 import 'package:intl/intl.dart';
+import '../widgets/no_internet_screen.dart';
 
 class ProfilePage extends StatefulWidget {
   const ProfilePage({super.key});
@@ -15,8 +16,10 @@ class ProfilePage extends StatefulWidget {
 
 class _ProfilePageState extends State<ProfilePage> {
   final ApiClient _apiClient = ApiClient();
+
   DriverProfile? _driverProfile;
   bool _isLoading = true;
+  bool _noInternet = false;
   String? _error;
 
   @override
@@ -26,13 +29,14 @@ class _ProfilePageState extends State<ProfilePage> {
   }
 
   Future<void> _loadDriverProfile() async {
+    setState(() {
+      _isLoading = true;
+      _error = null;
+      _noInternet = false;
+    });
+
     try {
       final response = await _apiClient.getDriverProfile();
-
-      // DEBUG (optional)
-      print('RAW created_at: ${response['data']['driver']['created_at']}');
-      print('RAW last_login: ${response['data']['driver']['last_login']}');
-
       final profileResponse = DriverProfileResponse.fromJson(response);
 
       if (!mounted) return;
@@ -40,15 +44,23 @@ class _ProfilePageState extends State<ProfilePage> {
       setState(() {
         _driverProfile = profileResponse.data.driver;
         _isLoading = false;
-        _error = null;
       });
     } catch (e) {
-      //  If session expired, ApiClient already redirected to Login
+      if (!mounted) return;
+
+      // 🔐 Session expired → ApiClient already redirected
       if (e is ApiException && e.statusCode == 401) {
         return;
       }
 
-      if (!mounted) return;
+      // 🌐 No Internet
+      if (e is ApiException && e.message == 'NO_INTERNET') {
+        setState(() {
+          _noInternet = true;
+          _isLoading = false;
+        });
+        return;
+      }
 
       setState(() {
         _isLoading = false;
@@ -114,6 +126,13 @@ class _ProfilePageState extends State<ProfilePage> {
   }
 
   Widget _buildBody() {
+    // 🌐 No Internet UI
+    if (_noInternet) {
+      return NoInternetScreen(
+        onRetry: _loadDriverProfile,
+      );
+    }
+
     if (_isLoading) {
       return const Center(child: CircularProgressIndicator());
     }
@@ -141,7 +160,9 @@ class _ProfilePageState extends State<ProfilePage> {
               Text(
                 _driverProfile!.name,
                 style: const TextStyle(
-                    fontSize: 20, fontWeight: FontWeight.w600),
+                  fontSize: 20,
+                  fontWeight: FontWeight.w600,
+                ),
               ),
               Text(
                 _driverProfile!.phone_number,
@@ -179,21 +200,20 @@ class _ProfilePageState extends State<ProfilePage> {
             backgroundColor: const Color(0xFF0B2A3A),
             padding: const EdgeInsets.symmetric(vertical: 14),
           ),
-          child:
-          const Text('Logout', style: TextStyle(color: Colors.white)),
+          child: const Text(
+            'Logout',
+            style: TextStyle(color: Colors.white),
+          ),
         ),
       ],
     );
   }
 
-  /// ✅ UI FORMATTING ONLY — NO TIMEZONE LOGIC
+  /// UI formatting only
   String _formatDate(DateTime date) {
-    // Force IST display (+5:30)
     final istDate = date.add(const Duration(hours: 5, minutes: 30));
-
     return DateFormat('dd/MM/yyyy, hh:mm a').format(istDate);
   }
-
 
   Widget _divider() => const Divider(height: 24);
 }
@@ -218,7 +238,10 @@ class _ProfileRow extends StatelessWidget {
         Expanded(
           child: Text(title, style: const TextStyle(color: Colors.grey)),
         ),
-        Text(value, style: const TextStyle(fontWeight: FontWeight.w600)),
+        Text(
+          value,
+          style: const TextStyle(fontWeight: FontWeight.w600),
+        ),
       ],
     );
   }

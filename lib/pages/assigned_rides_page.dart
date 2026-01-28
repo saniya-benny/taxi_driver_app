@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import '../widgets/bill_sheet.dart';
 import '../services/api_client.dart';
 import '../services/api_exceptions.dart';
+import '../widgets/no_internet_screen.dart';
 
 class AssignedRidesPage extends StatefulWidget {
   const AssignedRidesPage({super.key});
@@ -12,9 +12,11 @@ class AssignedRidesPage extends StatefulWidget {
 
 class _AssignedRidesPageState extends State<AssignedRidesPage> {
   final ApiClient _apiClient = ApiClient();
+
   List<Map<String, dynamic>> _rides = [];
   bool _isLoading = true;
   String? _error;
+  bool _noInternet = false; // ✅ KEY FLAG
 
   @override
   void initState() {
@@ -26,10 +28,12 @@ class _AssignedRidesPageState extends State<AssignedRidesPage> {
     setState(() {
       _isLoading = true;
       _error = null;
+      _noInternet = false;
     });
 
     try {
       final response = await _apiClient.getAssignedRides();
+
       setState(() {
         if (response['success'] == true && response['data'] != null) {
           final data = response['data'];
@@ -40,14 +44,23 @@ class _AssignedRidesPageState extends State<AssignedRidesPage> {
           }
         } else if (response['data'] is List) {
           _rides = List<Map<String, dynamic>>.from(response['data']);
-        } else if (response['rides'] is List) {
-          _rides = List<Map<String, dynamic>>.from(response['rides']);
         } else {
           _rides = [];
         }
+
         _isLoading = false;
       });
     } catch (e) {
+      // 🔌 NO INTERNET → SWITCH UI (NO NAVIGATION)
+      if (e is ApiException && e.message == 'NO_INTERNET') {
+        setState(() {
+          _noInternet = true;
+          _isLoading = false;
+        });
+        return;
+      }
+
+      // 🔐 SESSION EXPIRED → already handled globally
       if (e is ApiException && e.statusCode == 401) {
         return;
       }
@@ -108,6 +121,13 @@ class _AssignedRidesPageState extends State<AssignedRidesPage> {
   }
 
   Widget _buildBody() {
+    // ✅ NO INTERNET UI (INSIDE PAGE)
+    if (_noInternet) {
+      return NoInternetScreen(
+        onRetry: _loadAssignedRides,
+      );
+    }
+
     if (_isLoading) {
       return const Center(child: CircularProgressIndicator());
     }
@@ -144,7 +164,7 @@ class _AssignedRidesPageState extends State<AssignedRidesPage> {
     }
 
     if (_rides.isEmpty) {
-      return _EmptyState();
+      return const _EmptyState();
     }
 
     return ListView.separated(
@@ -154,66 +174,53 @@ class _AssignedRidesPageState extends State<AssignedRidesPage> {
       itemBuilder: (context, index) {
         final ride = _rides[index];
 
-        return InkWell(
-          onTap: () {
-            showModalBottomSheet(
-              context: context,
-              isScrollControlled: true,
-              backgroundColor: Colors.transparent,
-              builder: (_) => _RideDetailSheet(
-                ride: ride,
-                onRideAction: _loadAssignedRides,
+        return Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            border: Border.all(color: Colors.grey.shade300),
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Ride ID: ${ride['id']?.toString().substring(0, 8) ?? 'Unknown'}',
+                style: const TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w600,
+                ),
               ),
-            );
-          },
-          child: Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              border: Border.all(color: Colors.grey.shade300),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Ride ID: ${ride['id']?.toString().substring(0, 8) ?? 'Unknown'}',
-                  style: const TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.w600,
+              const SizedBox(height: 12),
+              _locationRow(
+                Icons.circle,
+                ride['pickup_address'] ?? 'Pickup location',
+                Colors.green,
+              ),
+              const SizedBox(height: 8),
+              _locationRow(
+                Icons.location_on,
+                ride['drop_address'] ?? 'Drop location',
+                Colors.red,
+              ),
+              const SizedBox(height: 12),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    ride['status'] ?? 'Unknown',
+                    style: TextStyle(
+                      color: _getStatusColor(ride['status']),
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
-                ),
-                const SizedBox(height: 12),
-                _locationRow(
-                  Icons.circle,
-                  ride['pickup_address'] ?? 'Pickup location',
-                  Colors.green,
-                ),
-                const SizedBox(height: 8),
-                _locationRow(
-                  Icons.location_on,
-                  ride['drop_address'] ?? 'Drop location',
-                  Colors.red,
-                ),
-                const SizedBox(height: 12),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      ride['status'] ?? 'Unknown',
-                      style: TextStyle(
-                        color: _getStatusColor(ride['status']),
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                    Text(
-                      formatToIST(ride['requested_at']), // ✅ FIXED
-                      style: const TextStyle(color: Colors.grey),
-                    ),
-                  ],
-                ),
-              ],
-            ),
+                  Text(
+                    formatToIST(ride['requested_at']),
+                    style: const TextStyle(color: Colors.grey),
+                  ),
+                ],
+              ),
+            ],
           ),
         );
       },
@@ -242,214 +249,23 @@ class _AssignedRidesPageState extends State<AssignedRidesPage> {
       ],
     );
   }
-
-  String _formatDate(String? dateString) {
-    if (dateString == null) return 'Unknown';
-    try {
-      final date = DateTime.parse(dateString);
-      return '${date.day}/${date.month}/${date.year} ${date.hour.toString().padLeft(2, '0')}:${date.minute.toString().padLeft(2, '0')}';
-    } catch (e) {
-      return dateString;
-    }
-  }
 }
 
-/// ================= EMPTY STATE =================
-
 class _EmptyState extends StatelessWidget {
+  const _EmptyState();
+
   @override
   Widget build(BuildContext context) {
-    return Center(
+    return const Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
-        children: const [
+        children: [
           Icon(Icons.assignment_late, size: 64, color: Colors.grey),
           SizedBox(height: 12),
           Text(
             'No live rides',
             style: TextStyle(color: Colors.grey, fontSize: 16),
           ),
-        ],
-      ),
-    );
-  }
-}
-
-/// ================= RIDE DETAIL SHEET =================
-
-class _RideDetailSheet extends StatefulWidget {
-  final Map<String, dynamic> ride;
-  final VoidCallback onRideAction;
-  const _RideDetailSheet({required this.ride, required this.onRideAction});
-
-  @override
-  State<_RideDetailSheet> createState() => _RideDetailSheetState();
-}
-
-class _RideDetailSheetState extends State<_RideDetailSheet> {
-  bool _isStarting = false;
-  bool _isEnding = false;
-  final ApiClient _apiClient = ApiClient();
-
-  @override
-  Widget build(BuildContext context) {
-    final ride = widget.ride;
-
-    return DraggableScrollableSheet(
-      initialChildSize: 0.55,
-      minChildSize: 0.4,
-      maxChildSize: 0.85,
-      builder: (_, controller) => Container(
-        padding: const EdgeInsets.all(20),
-        decoration: const BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-        ),
-        child: ListView(
-          controller: controller,
-          children: [
-            Center(
-              child: Container(
-                width: 50,
-                height: 5,
-                decoration: BoxDecoration(
-                  color: Colors.grey.shade300,
-                  borderRadius: BorderRadius.circular(10),
-                ),
-              ),
-            ),
-            const SizedBox(height: 20),
-            Text(
-              'Ride ID: ${ride['id']?.toString().substring(0, 8) ?? 'Unknown'}',
-              style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 20),
-            _detailRow('Pickup', ride['pickup_address'] ?? 'Pickup location'),
-            _detailRow('Drop', ride['drop_address'] ?? 'Drop location'),
-            const SizedBox(height: 16),
-
-            // ✅ Fixed overflow here using Expanded
-            Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    'Status: ${ride['status'] ?? 'Unknown'}',
-                    style: const TextStyle(fontWeight: FontWeight.w600),
-                  ),
-                ),
-                Expanded(
-                  child: Text(
-                    'Requested: ${formatToIST(ride['requested_at'])}',
-                    textAlign: TextAlign.right,
-                    style: const TextStyle(color: Colors.grey),
-                  ),
-                ),
-              ],
-            ),
-
-            if (ride['assigned_at'] != null) ...[
-              const SizedBox(height: 8),
-              Text('Assigned: ${formatToIST(ride['assigned_at'])}'),
-            ],
-
-            const SizedBox(height: 32),
-
-            if (ride['status'] == 'assigned')
-              _isStarting
-                  ? const Center(child: CircularProgressIndicator())
-                  : OutlinedButton(
-                      onPressed: _startRide,
-                      style: OutlinedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(vertical: 14),
-                        side: const BorderSide(color: Color(0xFF0B2A3A)),
-                      ),
-                      child: const Text(
-                        'Start Ride',
-                        style: TextStyle(color: Color(0xFF0B2A3A)),
-                      ),
-                    ),
-
-            if (ride['status'] == 'in_progress')
-              _isEnding
-                  ? const Center(child: CircularProgressIndicator())
-                  : ElevatedButton(
-                      onPressed: _endRide,
-                      style: ElevatedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(vertical: 14),
-                        backgroundColor: const Color(0xFF0B2A3A),
-                      ),
-                      child: const Text(
-                        'End Ride',
-                        style: TextStyle(color: Colors.white),
-                      ),
-                    ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Future<void> _startRide() async {
-    setState(() => _isStarting = true);
-    try {
-      await _apiClient.startRide(widget.ride['id']);
-      if (mounted) {
-        Navigator.pop(context);
-        widget.onRideAction();
-      }
-    } catch (e) {
-      if (e is ApiException && e.statusCode == 401) {
-        return; // 🔥 already redirected
-      }
-
-      if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Failed to start ride: $e')));
-      }
-    } finally {
-      if (mounted) setState(() => _isStarting = false);
-    }
-  }
-
-  Future<void> _endRide() async {
-    setState(() => _isEnding = true);
-    try {
-      await _apiClient.endRide(widget.ride['id']);
-      if (mounted) {
-        Navigator.pop(context);
-        widget.onRideAction();
-      }
-    } catch (e) {
-      if (e is ApiException && e.statusCode == 401) {
-        return; // 🔥 already redirected
-      }
-
-      if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('Failed to end ride: $e')));
-      }
-    } finally {
-      if (mounted) setState(() => _isEnding = false);
-    }
-  }
-
-  Widget _detailRow(String title, String value) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            title,
-            style: const TextStyle(
-              fontWeight: FontWeight.w600,
-              color: Colors.grey,
-            ),
-          ),
-          const SizedBox(height: 4),
-          Text(value),
         ],
       ),
     );
@@ -467,7 +283,7 @@ String formatToIST(String? dateString) {
         '${istDate.year} '
         '${istDate.hour.toString().padLeft(2, '0')}:'
         '${istDate.minute.toString().padLeft(2, '0')}';
-  } catch (e) {
+  } catch (_) {
     return dateString;
   }
 }

@@ -5,6 +5,8 @@ import 'api_exceptions.dart';
 import 'package:taxi_driver/pages/login_page.dart';
 import 'package:taxi_driver/main.dart';
 import 'package:flutter/material.dart';
+import 'dart:io';
+
 
 class ApiClient {
   static const String baseUrl = "https://api.lenienttree.org";
@@ -69,46 +71,67 @@ class ApiClient {
   }
 
   Future<Map<String, dynamic>> get(String endpoint, {Map<String, String>? queryParams}) async {
-    await getToken(); // Ensure token is loaded
+    try {
+      await getToken();
 
-    final uri = Uri.parse('$baseUrl$endpoint');
-    final requestUri = queryParams != null ? uri.replace(queryParameters: queryParams) : uri;
+      final uri = Uri.parse('$baseUrl$endpoint');
+      final requestUri =
+      queryParams != null ? uri.replace(queryParameters: queryParams) : uri;
 
-    final response = await http.get(requestUri, headers: _headers);
-    return _handleResponse(response);
+      final response = await http.get(requestUri, headers: _headers);
+      return _handleResponse(response);
+    } on SocketException {
+      throw ApiException('NO_INTERNET');
+    }
   }
+
 
   Future<Map<String, dynamic>> post(String endpoint, {Map<String, dynamic>? body}) async {
-    await getToken(); // Ensure token is loaded
+    try {
+      await getToken();
 
-    final response = await http.post(
-      Uri.parse('$baseUrl$endpoint'),
-      headers: _headers,
-      body: body != null ? jsonEncode(body) : null,
-    );
-    return _handleResponse(response);
+      final response = await http.post(
+        Uri.parse('$baseUrl$endpoint'),
+        headers: _headers,
+        body: body != null ? jsonEncode(body) : null,
+      );
+      return _handleResponse(response);
+    } on SocketException {
+      throw ApiException('NO_INTERNET');
+    }
   }
+
 
   Future<Map<String, dynamic>> put(String endpoint, {Map<String, dynamic>? body}) async {
-    await getToken(); // Ensure token is loaded
+    try {
+      await getToken();
 
-    final response = await http.put(
-      Uri.parse('$baseUrl$endpoint'),
-      headers: _headers,
-      body: body != null ? jsonEncode(body) : null,
-    );
-    return _handleResponse(response);
+      final response = await http.put(
+        Uri.parse('$baseUrl$endpoint'),
+        headers: _headers,
+        body: body != null ? jsonEncode(body) : null,
+      );
+      return _handleResponse(response);
+    } on SocketException {
+      throw ApiException('NO_INTERNET');
+    }
   }
+
 
   Future<Map<String, dynamic>> delete(String endpoint) async {
-    await getToken(); // Ensure token is loaded
+    try {
+      await getToken();
 
-    final response = await http.delete(
-      Uri.parse('$baseUrl$endpoint'),
-      headers: _headers,
-    );
-    return _handleResponse(response);
+      final response = await http.delete(
+        Uri.parse('$baseUrl$endpoint'),
+        headers: _headers,
+      );
+      return _handleResponse(response);
+    } on SocketException {
+      throw ApiException('NO_INTERNET');
+    }
   }
+
 
   // Specific API Methods
   Future<Map<String, dynamic>> driverLogin(String phoneNumber, String password) async {
