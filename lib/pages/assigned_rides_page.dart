@@ -83,7 +83,7 @@ class _AssignedRidesPageState extends State<AssignedRidesPage> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'TraveLink',
+              'DriverLink',
               style: TextStyle(
                 fontWeight: FontWeight.bold,
                 color: Colors.white,
@@ -174,15 +174,27 @@ class _AssignedRidesPageState extends State<AssignedRidesPage> {
       itemBuilder: (context, index) {
         final ride = _rides[index];
 
-        return Container(
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            border: Border.all(color: Colors.grey.shade300),
-            borderRadius: BorderRadius.circular(12),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+        return InkWell(
+            onTap: () {
+          showModalBottomSheet(
+            context: context,
+            isScrollControlled: true,
+            backgroundColor: Colors.transparent,
+            builder: (_) => _RideDetailSheet(
+              ride: ride,
+              onActionComplete: _loadAssignedRides,
+            ),
+          );
+        },
+        child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+        color: Colors.white,
+        border: Border.all(color: Colors.grey.shade300),
+        borderRadius: BorderRadius.circular(12),
+        ),
+        child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
                 'Ride ID: ${ride['id']?.toString().substring(0, 8) ?? 'Unknown'}',
@@ -222,6 +234,7 @@ class _AssignedRidesPageState extends State<AssignedRidesPage> {
               ),
             ],
           ),
+        ),
         );
       },
     );
@@ -266,6 +279,126 @@ class _EmptyState extends StatelessWidget {
             'No live rides',
             style: TextStyle(color: Colors.grey, fontSize: 16),
           ),
+        ],
+      ),
+    );
+  }
+}
+class _RideDetailSheet extends StatefulWidget {
+  final Map<String, dynamic> ride;
+  final VoidCallback onActionComplete;
+
+  const _RideDetailSheet({
+    required this.ride,
+    required this.onActionComplete,
+  });
+
+  @override
+  State<_RideDetailSheet> createState() => _RideDetailSheetState();
+}
+
+class _RideDetailSheetState extends State<_RideDetailSheet> {
+  bool _isStarting = false;
+  bool _isEnding = false;
+  final ApiClient _apiClient = ApiClient();
+
+  @override
+  Widget build(BuildContext context) {
+    final ride = widget.ride;
+
+    return DraggableScrollableSheet(
+      initialChildSize: 0.55,
+      minChildSize: 0.4,
+      maxChildSize: 0.85,
+      builder: (_, controller) => Container(
+        padding: const EdgeInsets.all(20),
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+        ),
+        child: ListView(
+          controller: controller,
+          children: [
+            Center(
+              child: Container(
+                width: 50,
+                height: 5,
+                decoration: BoxDecoration(
+                  color: Colors.grey.shade300,
+                  borderRadius: BorderRadius.circular(10),
+                ),
+              ),
+            ),
+            const SizedBox(height: 20),
+
+            Text(
+              'Ride ID: ${ride['id']?.toString().substring(0, 8) ?? 'Unknown'}',
+              style: const TextStyle(
+                fontSize: 22,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+
+            const SizedBox(height: 20),
+            _detailRow('Pickup', ride['pickup_address'] ?? ''),
+            _detailRow('Drop', ride['drop_address'] ?? ''),
+
+            const SizedBox(height: 32),
+
+            if (ride['status'] == 'assigned')
+              _isStarting
+                  ? const Center(child: CircularProgressIndicator())
+                  : OutlinedButton(
+                onPressed: _startRide,
+                child: const Text('Start Ride'),
+              ),
+
+            if (ride['status'] == 'in_progress')
+              _isEnding
+                  ? const Center(child: CircularProgressIndicator())
+                  : ElevatedButton(
+                onPressed: _endRide,
+                child: const Text('End Ride'),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _startRide() async {
+    setState(() => _isStarting = true);
+    try {
+      await _apiClient.startRide(widget.ride['id']);
+      Navigator.pop(context);
+      widget.onActionComplete();
+    } finally {
+      if (mounted) setState(() => _isStarting = false);
+    }
+  }
+
+  Future<void> _endRide() async {
+    setState(() => _isEnding = true);
+    try {
+      await _apiClient.endRide(widget.ride['id']);
+      Navigator.pop(context);
+      widget.onActionComplete();
+    } finally {
+      if (mounted) setState(() => _isEnding = false);
+    }
+  }
+
+  Widget _detailRow(String title, String value) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(title,
+              style: const TextStyle(
+                  fontWeight: FontWeight.w600, color: Colors.grey)),
+          const SizedBox(height: 4),
+          Text(value),
         ],
       ),
     );

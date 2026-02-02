@@ -9,6 +9,10 @@ class DriverProfile {
   final String phone_number;
   final String license_number;
   final String vehicle_number;
+
+  final String? address;
+  final String? pincode;
+
   final bool is_active;
   final bool is_available;
 
@@ -26,6 +30,8 @@ class DriverProfile {
     required this.phone_number,
     required this.license_number,
     required this.vehicle_number,
+    this.address,          // ✅ nullable
+    this.pincode,          // ✅ nullable
     required this.is_active,
     required this.is_available,
     required this.created_at,
@@ -33,11 +39,13 @@ class DriverProfile {
     required this.stats,
   });
 
+
   factory DriverProfile.fromJson(Map<String, dynamic> json) =>
       _$DriverProfileFromJson(json);
 
   Map<String, dynamic> toJson() => _$DriverProfileToJson(this);
 }
+
 
 @JsonSerializable()
 class DriverStats {

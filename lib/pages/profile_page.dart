@@ -191,6 +191,25 @@ class _ProfilePageState extends State<ProfilePage> {
           title: 'Member Since',
           value: _formatDate(_driverProfile!.created_at),
         ),
+        _divider(),
+        _ProfileRow(
+          icon: Icons.location_on,
+          title: 'Address',
+          value: (_driverProfile!.address?.isNotEmpty ?? false)
+              ? _driverProfile!.address!
+              : 'Not provided',
+
+        ),
+        _divider(),
+        _ProfileRow(
+          icon: Icons.pin_drop,
+          title: 'Pin Code',
+          value: (_driverProfile!.address?.isNotEmpty ?? false)
+              ? _driverProfile!.address!
+              : 'Not provided',
+
+        ),
+
 
         const SizedBox(height: 40),
 

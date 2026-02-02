@@ -18,7 +18,7 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       navigatorKey: navigatorKey,
-      title: 'TraveLink-Driver',debugShowCheckedModeBanner: false,
+      title: 'DriverLink-Driver',debugShowCheckedModeBanner: false,
       theme: ThemeData(
         // This is the theme of your application.
         //

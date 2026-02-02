@@ -14,7 +14,7 @@
 
 
     <application
-        android:label="TraveLink-Driver"
+        android:label="DriverLink-Driver"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
         <activity

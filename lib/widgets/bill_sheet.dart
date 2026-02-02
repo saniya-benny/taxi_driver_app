@@ -48,7 +48,7 @@ class BillSheet extends StatelessWidget {
           const SizedBox(height: 12),
 
           const Text(
-            'Ride Bill',
+            'Travel Fare',
             style: TextStyle(
               fontSize: 24,
               fontWeight: FontWeight.w700,
@@ -77,8 +77,8 @@ class BillSheet extends StatelessWidget {
               children: [
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: const [
-                    Text(
+                  children: [
+                    const Text(
                       'Ride fare',
                       style: TextStyle(
                         fontSize: 16,
@@ -86,8 +86,8 @@ class BillSheet extends StatelessWidget {
                       ),
                     ),
                     Text(
-                      '₹',
-                      style: TextStyle(
+                      '₹${amount.toStringAsFixed(2)}',
+                      style: const TextStyle(
                         fontSize: 16,
                         color: Colors.black54,
                       ),
