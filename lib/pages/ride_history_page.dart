@@ -4,6 +4,8 @@ import '../services/driver_api_service.dart';
 import '../models/ride_model.dart';
 import '../services/api_exceptions.dart';
 import '../widgets/no_internet_screen.dart';
+import 'dart:io';
+
 
 class RideHistoryPage extends StatefulWidget {
   const RideHistoryPage({super.key});
@@ -34,6 +36,12 @@ class _RideHistoryPageState extends State<RideHistoryPage> {
     });
 
     try {
+      // 🔌 Pre-check internet
+      final result = await InternetAddress.lookup('google.com');
+      if (result.isEmpty || result.first.rawAddress.isEmpty) {
+        throw const SocketException('No Internet');
+      }
+
       final response = await _driverApiService.getRideHistory();
 
       setState(() {
@@ -41,7 +49,16 @@ class _RideHistoryPageState extends State<RideHistoryPage> {
         _isLoading = false;
       });
     } catch (e) {
-      // 🔌 NO INTERNET → SWITCH UI
+      // 🔌 Real said no internet
+      if (e is SocketException) {
+        setState(() {
+          _noInternet = true;
+          _isLoading = false;
+        });
+        return;
+      }
+
+      // 🔌 API layer internet error
       if (e is ApiException && e.message == 'NO_INTERNET') {
         setState(() {
           _noInternet = true;
@@ -50,7 +67,7 @@ class _RideHistoryPageState extends State<RideHistoryPage> {
         return;
       }
 
-      // 🔐 SESSION EXPIRED (handled globally)
+      // 🔐 Session expired
       if (e is ApiException && e.statusCode == 401) {
         return;
       }
@@ -61,6 +78,7 @@ class _RideHistoryPageState extends State<RideHistoryPage> {
       });
     }
   }
+
 
   @override
   Widget build(BuildContext context) {

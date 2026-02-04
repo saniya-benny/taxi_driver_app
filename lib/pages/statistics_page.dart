@@ -3,6 +3,8 @@ import '../models/driver_stats_model.dart';
 import '../services/driver_api_service.dart';
 import '../services/api_exceptions.dart';
 import '../widgets/no_internet_screen.dart';
+import 'dart:io';
+
 
 class StatisticsPage extends StatefulWidget {
   const StatisticsPage({super.key});
@@ -45,6 +47,12 @@ class _StatisticsPageState extends State<StatisticsPage>
     });
 
     try {
+      // 🔌 Pre-check internet
+      final result = await InternetAddress.lookup('google.com');
+      if (result.isEmpty || result.first.rawAddress.isEmpty) {
+        throw const SocketException('No Internet');
+      }
+
       final daily = await _driverApiService.getDailyStats();
       final weekly = await _driverApiService.getWeeklyStats();
 
@@ -52,7 +60,7 @@ class _StatisticsPageState extends State<StatisticsPage>
       try {
         monthly = await _driverApiService.getMonthlyStats();
       } catch (_) {
-        // monthly is optional → ignore failure
+        // monthly optional
       }
 
       if (!mounted) return;
@@ -66,6 +74,16 @@ class _StatisticsPageState extends State<StatisticsPage>
     } catch (e) {
       if (!mounted) return;
 
+      // 🔌 Real internet lost
+      if (e is SocketException) {
+        setState(() {
+          _isLoading = false;
+          _noInternet = true;
+        });
+        return;
+      }
+
+      // 🔌 API layer internet error
       if (e is ApiException && e.message == 'NO_INTERNET') {
         setState(() {
           _isLoading = false;
@@ -74,6 +92,7 @@ class _StatisticsPageState extends State<StatisticsPage>
         return;
       }
 
+      // 🔐 Session expired
       if (e is ApiException && e.statusCode == 401) return;
 
       setState(() {

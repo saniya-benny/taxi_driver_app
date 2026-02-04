@@ -16,7 +16,7 @@ class DriverApiService {
   Future<RideResponse> getAssignedRides() async {
     try {
       final response = await _apiClient.getAssignedRides();
-      print('API Response: $response'); // Debug log
+      print(response); // Debug log
       return RideResponse.fromJson(response);
     } catch (e) {
       print('Error in getAssignedRides: $e'); // Debug log

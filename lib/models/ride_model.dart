@@ -16,7 +16,8 @@ class Ride {
   final double? fare;
   final String? status;
   final String? payment_status;
-  
+  final int? required_time_hours;
+
   @JsonKey(fromJson: _dateTimeFromJson, toJson: _dateTimeToJson)
   final DateTime? pickup_time;
   
@@ -39,6 +40,7 @@ class Ride {
     this.fare,
     this.status,
     this.payment_status,
+    this.required_time_hours,
     this.pickup_time,
     this.dropoff_time,
     this.created_at,
@@ -64,6 +66,7 @@ class Ride {
         fare: (json['fare'] as num?)?.toDouble(),
         status: json['status'] as String?,
         payment_status: json['payment_status'] as String?,
+        required_time_hours: json['required_time_hours'] as int?,
         pickup_time: json['pickup_time'] == null
             ? null
             : _dateTimeFromJson(json['pickup_time'] as String?),

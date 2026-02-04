@@ -3,6 +3,8 @@ import '../services/driver_api_service.dart';
 import '../models/ride_model.dart';
 import '../services/api_exceptions.dart';
 import '../widgets/no_internet_screen.dart';
+import 'dart:io';
+
 
 class AssignedRidesPage extends StatefulWidget {
   const AssignedRidesPage({super.key});
@@ -33,6 +35,12 @@ class _AssignedRidesPageState extends State<AssignedRidesPage> {
     });
 
     try {
+      // 🔌 Check connection first
+      final result = await InternetAddress.lookup('google.com');
+      if (result.isEmpty || result.first.rawAddress.isEmpty) {
+        throw const SocketException('No Internet');
+      }
+
       final response = await _driverApiService.getAssignedRides();
 
       setState(() {
@@ -40,7 +48,14 @@ class _AssignedRidesPageState extends State<AssignedRidesPage> {
         _isLoading = false;
       });
     } catch (e) {
-      // 🔌 NO INTERNET → SWITCH UI (NO NAVIGATION)
+      if (e is SocketException) {
+        setState(() {
+          _noInternet = true;
+          _isLoading = false;
+        });
+        return;
+      }
+
       if (e is ApiException && e.message == 'NO_INTERNET') {
         setState(() {
           _noInternet = true;
@@ -49,7 +64,6 @@ class _AssignedRidesPageState extends State<AssignedRidesPage> {
         return;
       }
 
-      // 🔐 SESSION EXPIRED → already handled globally
       if (e is ApiException && e.statusCode == 401) {
         return;
       }
@@ -60,6 +74,7 @@ class _AssignedRidesPageState extends State<AssignedRidesPage> {
       });
     }
   }
+
 
   @override
   Widget build(BuildContext context) {
@@ -110,11 +125,8 @@ class _AssignedRidesPageState extends State<AssignedRidesPage> {
   }
 
   Widget _buildBody() {
-    // ✅ NO INTERNET UI (INSIDE PAGE)
     if (_noInternet) {
-      return NoInternetScreen(
-        onRetry: _loadAssignedRides,
-      );
+      return NoInternetScreen(onRetry: _loadAssignedRides);
     }
 
     if (_isLoading) {
@@ -193,17 +205,24 @@ class _AssignedRidesPageState extends State<AssignedRidesPage> {
                   ),
                 ),
                 const SizedBox(height: 12),
-                _locationRow(
-                  Icons.circle,
-                  ride.displayPickupAddress,
-                  Colors.green,
-                ),
-                const SizedBox(height: 8),
-                _locationRow(
-                  Icons.location_on,
-                  ride.displayDropoffAddress,
-                  Colors.red,
-                ),
+                _locationRow(Icons.circle, ride.displayPickupAddress, Colors.green),
+                if (ride.required_time_hours != null)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 6),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.timer, size: 14, color: Colors.grey),
+                        const SizedBox(width: 6),
+                        Text(
+                          'Duration: ${ride.required_time_hours} hr${ride.required_time_hours == 1 ? '' : 's'}',
+                          style: const TextStyle(
+                            fontSize: 13,
+                            color: Colors.grey,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
                 const SizedBox(height: 12),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -216,7 +235,9 @@ class _AssignedRidesPageState extends State<AssignedRidesPage> {
                       ),
                     ),
                     Text(
-                      formatToIST(ride.created_at?.toIso8601String()),
+                      ride.status == 'assigned'
+                          ? formatDate(ride.pickup_time)
+                          : formatDate(ride.created_at),
                       style: const TextStyle(color: Colors.grey),
                     ),
                   ],
@@ -273,6 +294,7 @@ class _EmptyState extends StatelessWidget {
     );
   }
 }
+
 class _RideDetailSheet extends StatefulWidget {
   final Ride ride;
   final VoidCallback onActionComplete;
@@ -293,8 +315,6 @@ class _RideDetailSheetState extends State<_RideDetailSheet> {
 
   @override
   Widget build(BuildContext context) {
-    final ride = widget.ride;
-
     return DraggableScrollableSheet(
       initialChildSize: 0.55,
       minChildSize: 0.4,
@@ -319,27 +339,41 @@ class _RideDetailSheetState extends State<_RideDetailSheet> {
               ),
             ),
             const SizedBox(height: 20),
-
             Text(
               'Ride ID: ${widget.ride.id.substring(0, 8)}',
-              style: const TextStyle(
-                fontSize: 22,
-                fontWeight: FontWeight.bold,
+              style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 8),
+
+            Text(
+              widget.ride.displayStatus.toUpperCase(),
+              style: TextStyle(
+                color: _getStatusColor(widget.ride.status),
+                fontWeight: FontWeight.w600,
+                fontSize: 14,
               ),
             ),
 
             const SizedBox(height: 20),
             _detailRow('Pickup', widget.ride.displayPickupAddress),
-            _detailRow('Drop', widget.ride.displayDropoffAddress),
-            if (widget.ride.customer_name != null) ...[
+            if (widget.ride.required_time_hours != null)
+              _detailRow(
+                'Required Duration',
+                '${widget.ride.required_time_hours} hours',
+              ),
+            if (widget.ride.customer_name != null)
               _detailRow('Customer', widget.ride.displayName),
-            ],
-            if (widget.ride.customer_phone != null) ...[
+            if (widget.ride.customer_phone != null)
               _detailRow('Phone', widget.ride.displayPhone),
-            ],
-            if (widget.ride.fare != null) ...[
+            if (widget.ride.fare != null)
               _detailRow('Fare', widget.ride.displayFare),
-            ],
+
+            const SizedBox(height: 16),
+
+            _detailRow('Requested', formatDate(widget.ride.created_at)),
+
+            if (widget.ride.pickup_time != null)
+              _detailRow('Assigned', formatDate(widget.ride.pickup_time)),
 
             const SizedBox(height: 32),
 
@@ -347,17 +381,46 @@ class _RideDetailSheetState extends State<_RideDetailSheet> {
               _isStarting
                   ? const Center(child: CircularProgressIndicator())
                   : OutlinedButton(
-                      onPressed: _startRide,
-                      child: const Text('Start Ride'),
-                    ),
+                style: OutlinedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  side: const BorderSide(
+                    color: Color(0xFF0B2A3A),
+                    width: 1.5,
+                  ),
+                ),
+                onPressed: _startRide,
+                child: const Text(
+                  'Start Ride',
+                  style: TextStyle(
+                    fontWeight: FontWeight.w600,
+                    color: Color(0xFF0B2A3A),
+                  ),
+                ),
+              ),
+
 
             if (widget.ride.status == 'in_progress')
               _isEnding
                   ? const Center(child: CircularProgressIndicator())
                   : ElevatedButton(
-                      onPressed: _endRide,
-                      child: const Text('End Ride'),
-                    ),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF0B2A3A),
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                ),
+                onPressed: _endRide,
+                child: const Text(
+                  'End Ride',
+                  style: TextStyle(fontWeight: FontWeight.w600),
+                ),
+              ),
+
           ],
         ),
       ),
@@ -385,6 +448,19 @@ class _RideDetailSheetState extends State<_RideDetailSheet> {
       if (mounted) setState(() => _isEnding = false);
     }
   }
+  Color _getStatusColor(String? status) {
+    switch (status?.toLowerCase()) {
+      case 'assigned':
+        return Colors.blue;
+      case 'in_progress':
+        return Colors.orange;
+      case 'completed':
+        return Colors.green;
+      default:
+        return Colors.grey;
+    }
+  }
+
 
   Widget _detailRow(String title, String value) {
     return Padding(
@@ -403,18 +479,12 @@ class _RideDetailSheetState extends State<_RideDetailSheet> {
   }
 }
 
-String formatToIST(String? dateString) {
-  if (dateString == null) return 'Unknown';
-  try {
-    final utcDate = DateTime.parse(dateString);
-    final istDate = utcDate.add(const Duration(hours: 5, minutes: 30));
+String formatDate(DateTime? date) {
+  if (date == null) return 'Unknown';
 
-    return '${istDate.day.toString().padLeft(2, '0')}/'
-        '${istDate.month.toString().padLeft(2, '0')}/'
-        '${istDate.year} '
-        '${istDate.hour.toString().padLeft(2, '0')}:'
-        '${istDate.minute.toString().padLeft(2, '0')}';
-  } catch (_) {
-    return dateString;
-  }
+  return '${date.day.toString().padLeft(2, '0')}/'
+      '${date.month.toString().padLeft(2, '0')}/'
+      '${date.year} '
+      '${date.hour.toString().padLeft(2, '0')}:'
+      '${date.minute.toString().padLeft(2, '0')}';
 }

@@ -6,6 +6,8 @@ import '../services/secure_storage_service.dart';
 import 'login_page.dart';
 import 'package:intl/intl.dart';
 import '../widgets/no_internet_screen.dart';
+import 'dart:io';
+
 
 class ProfilePage extends StatefulWidget {
   const ProfilePage({super.key});
@@ -36,6 +38,12 @@ class _ProfilePageState extends State<ProfilePage> {
     });
 
     try {
+      // 🔌 Internet pre-check
+      final result = await InternetAddress.lookup('google.com');
+      if (result.isEmpty || result.first.rawAddress.isEmpty) {
+        throw const SocketException('No Internet');
+      }
+
       final profile = await _driverApiService.getDriverProfile();
 
       if (!mounted) return;
@@ -47,12 +55,16 @@ class _ProfilePageState extends State<ProfilePage> {
     } catch (e) {
       if (!mounted) return;
 
-      // 🔐 Session expired → ApiClient already redirected
-      if (e is ApiException && e.statusCode == 401) {
+      // 🔌 Real internet lost
+      if (e is SocketException) {
+        setState(() {
+          _noInternet = true;
+          _isLoading = false;
+        });
         return;
       }
 
-      // 🌐 No Internet
+      // 🔌 API layer internet error
       if (e is ApiException && e.message == 'NO_INTERNET') {
         setState(() {
           _noInternet = true;
@@ -60,6 +72,9 @@ class _ProfilePageState extends State<ProfilePage> {
         });
         return;
       }
+
+      // 🔐 Session expired
+      if (e is ApiException && e.statusCode == 401) return;
 
       setState(() {
         _isLoading = false;
