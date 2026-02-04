@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
-import '../services/api_client.dart';
+import '../services/driver_api_service.dart';
+import '../models/ride_model.dart';
 import '../services/api_exceptions.dart';
 import '../widgets/no_internet_screen.dart';
 
@@ -11,12 +12,12 @@ class AssignedRidesPage extends StatefulWidget {
 }
 
 class _AssignedRidesPageState extends State<AssignedRidesPage> {
-  final ApiClient _apiClient = ApiClient();
+  final DriverApiService _driverApiService = DriverApiService();
 
-  List<Map<String, dynamic>> _rides = [];
+  List<Ride> _rides = [];
   bool _isLoading = true;
   String? _error;
-  bool _noInternet = false; // ✅ KEY FLAG
+  bool _noInternet = false;
 
   @override
   void initState() {
@@ -32,22 +33,10 @@ class _AssignedRidesPageState extends State<AssignedRidesPage> {
     });
 
     try {
-      final response = await _apiClient.getAssignedRides();
+      final response = await _driverApiService.getAssignedRides();
 
       setState(() {
-        if (response['success'] == true && response['data'] != null) {
-          final data = response['data'];
-          if (data['rides'] is List) {
-            _rides = List<Map<String, dynamic>>.from(data['rides']);
-          } else {
-            _rides = [];
-          }
-        } else if (response['data'] is List) {
-          _rides = List<Map<String, dynamic>>.from(response['data']);
-        } else {
-          _rides = [];
-        }
-
+        _rides = response.data;
         _isLoading = false;
       });
     } catch (e) {
@@ -175,66 +164,66 @@ class _AssignedRidesPageState extends State<AssignedRidesPage> {
         final ride = _rides[index];
 
         return InkWell(
-            onTap: () {
-          showModalBottomSheet(
-            context: context,
-            isScrollControlled: true,
-            backgroundColor: Colors.transparent,
-            builder: (_) => _RideDetailSheet(
-              ride: ride,
-              onActionComplete: _loadAssignedRides,
+          onTap: () {
+            showModalBottomSheet(
+              context: context,
+              isScrollControlled: true,
+              backgroundColor: Colors.transparent,
+              builder: (_) => _RideDetailSheet(
+                ride: ride,
+                onActionComplete: _loadAssignedRides,
+              ),
+            );
+          },
+          child: Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              border: Border.all(color: Colors.grey.shade300),
+              borderRadius: BorderRadius.circular(12),
             ),
-          );
-        },
-        child: Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-        color: Colors.white,
-        border: Border.all(color: Colors.grey.shade300),
-        borderRadius: BorderRadius.circular(12),
-        ),
-        child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'Ride ID: ${ride['id']?.toString().substring(0, 8) ?? 'Unknown'}',
-                style: const TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.w600,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Ride ID: ${ride.id.substring(0, 8)}',
+                  style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
-              ),
-              const SizedBox(height: 12),
-              _locationRow(
-                Icons.circle,
-                ride['pickup_address'] ?? 'Pickup location',
-                Colors.green,
-              ),
-              const SizedBox(height: 8),
-              _locationRow(
-                Icons.location_on,
-                ride['drop_address'] ?? 'Drop location',
-                Colors.red,
-              ),
-              const SizedBox(height: 12),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    ride['status'] ?? 'Unknown',
-                    style: TextStyle(
-                      color: _getStatusColor(ride['status']),
-                      fontWeight: FontWeight.w600,
+                const SizedBox(height: 12),
+                _locationRow(
+                  Icons.circle,
+                  ride.displayPickupAddress,
+                  Colors.green,
+                ),
+                const SizedBox(height: 8),
+                _locationRow(
+                  Icons.location_on,
+                  ride.displayDropoffAddress,
+                  Colors.red,
+                ),
+                const SizedBox(height: 12),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      ride.displayStatus,
+                      style: TextStyle(
+                        color: _getStatusColor(ride.status),
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
-                  ),
-                  Text(
-                    formatToIST(ride['requested_at']),
-                    style: const TextStyle(color: Colors.grey),
-                  ),
-                ],
-              ),
-            ],
+                    Text(
+                      formatToIST(ride.created_at?.toIso8601String()),
+                      style: const TextStyle(color: Colors.grey),
+                    ),
+                  ],
+                ),
+              ],
+            ),
           ),
-        ),
         );
       },
     );
@@ -285,7 +274,7 @@ class _EmptyState extends StatelessWidget {
   }
 }
 class _RideDetailSheet extends StatefulWidget {
-  final Map<String, dynamic> ride;
+  final Ride ride;
   final VoidCallback onActionComplete;
 
   const _RideDetailSheet({
@@ -300,7 +289,7 @@ class _RideDetailSheet extends StatefulWidget {
 class _RideDetailSheetState extends State<_RideDetailSheet> {
   bool _isStarting = false;
   bool _isEnding = false;
-  final ApiClient _apiClient = ApiClient();
+  final DriverApiService _driverApiService = DriverApiService();
 
   @override
   Widget build(BuildContext context) {
@@ -332,7 +321,7 @@ class _RideDetailSheetState extends State<_RideDetailSheet> {
             const SizedBox(height: 20),
 
             Text(
-              'Ride ID: ${ride['id']?.toString().substring(0, 8) ?? 'Unknown'}',
+              'Ride ID: ${widget.ride.id.substring(0, 8)}',
               style: const TextStyle(
                 fontSize: 22,
                 fontWeight: FontWeight.bold,
@@ -340,26 +329,35 @@ class _RideDetailSheetState extends State<_RideDetailSheet> {
             ),
 
             const SizedBox(height: 20),
-            _detailRow('Pickup', ride['pickup_address'] ?? ''),
-            _detailRow('Drop', ride['drop_address'] ?? ''),
+            _detailRow('Pickup', widget.ride.displayPickupAddress),
+            _detailRow('Drop', widget.ride.displayDropoffAddress),
+            if (widget.ride.customer_name != null) ...[
+              _detailRow('Customer', widget.ride.displayName),
+            ],
+            if (widget.ride.customer_phone != null) ...[
+              _detailRow('Phone', widget.ride.displayPhone),
+            ],
+            if (widget.ride.fare != null) ...[
+              _detailRow('Fare', widget.ride.displayFare),
+            ],
 
             const SizedBox(height: 32),
 
-            if (ride['status'] == 'assigned')
+            if (widget.ride.status == 'assigned')
               _isStarting
                   ? const Center(child: CircularProgressIndicator())
                   : OutlinedButton(
-                onPressed: _startRide,
-                child: const Text('Start Ride'),
-              ),
+                      onPressed: _startRide,
+                      child: const Text('Start Ride'),
+                    ),
 
-            if (ride['status'] == 'in_progress')
+            if (widget.ride.status == 'in_progress')
               _isEnding
                   ? const Center(child: CircularProgressIndicator())
                   : ElevatedButton(
-                onPressed: _endRide,
-                child: const Text('End Ride'),
-              ),
+                      onPressed: _endRide,
+                      child: const Text('End Ride'),
+                    ),
           ],
         ),
       ),
@@ -369,7 +367,7 @@ class _RideDetailSheetState extends State<_RideDetailSheet> {
   Future<void> _startRide() async {
     setState(() => _isStarting = true);
     try {
-      await _apiClient.startRide(widget.ride['id']);
+      await _driverApiService.startRide(widget.ride.id);
       Navigator.pop(context);
       widget.onActionComplete();
     } finally {
@@ -380,7 +378,7 @@ class _RideDetailSheetState extends State<_RideDetailSheet> {
   Future<void> _endRide() async {
     setState(() => _isEnding = true);
     try {
-      await _apiClient.endRide(widget.ride['id']);
+      await _driverApiService.endRide(widget.ride.id);
       Navigator.pop(context);
       widget.onActionComplete();
     } finally {

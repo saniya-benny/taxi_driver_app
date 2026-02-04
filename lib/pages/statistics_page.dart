@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import '../models/driver_stats_model.dart';
-import '../services/api_client.dart';
+import '../services/driver_api_service.dart';
 import '../services/api_exceptions.dart';
 import '../widgets/no_internet_screen.dart';
 
@@ -13,7 +13,7 @@ class StatisticsPage extends StatefulWidget {
 
 class _StatisticsPageState extends State<StatisticsPage>
     with SingleTickerProviderStateMixin {
-  final ApiClient _apiClient = ApiClient();
+  final DriverApiService _driverApiService = DriverApiService();
   late TabController _tabController;
 
   DailyStats? _dailyStats;
@@ -45,12 +45,12 @@ class _StatisticsPageState extends State<StatisticsPage>
     });
 
     try {
-      final daily = await _apiClient.getDailyStats();
-      final weekly = await _apiClient.getWeeklyStats();
+      final daily = await _driverApiService.getDailyStats();
+      final weekly = await _driverApiService.getWeeklyStats();
 
-      Map<String, dynamic>? monthly;
+      MonthlyStats? monthly;
       try {
-        monthly = await _apiClient.getMonthlyStats();
+        monthly = await _driverApiService.getMonthlyStats();
       } catch (_) {
         // monthly is optional → ignore failure
       }
@@ -58,15 +58,9 @@ class _StatisticsPageState extends State<StatisticsPage>
       if (!mounted) return;
 
       setState(() {
-        _dailyStats =
-        daily['data'] != null ? DailyStats.fromJson(daily['data']) : null;
-        _weeklyStats =
-        weekly['data'] != null ? WeeklyStats.fromJson(weekly['data']) : null;
-        _monthlyStats =
-        monthly != null && monthly['data'] != null
-            ? MonthlyStats.fromJson(monthly['data'])
-            : null;
-
+        _dailyStats = daily;
+        _weeklyStats = weekly;
+        _monthlyStats = monthly;
         _isLoading = false;
       });
     } catch (e) {

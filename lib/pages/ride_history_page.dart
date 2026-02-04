@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../widgets/bill_sheet.dart';
-import '../services/api_client.dart';
+import '../services/driver_api_service.dart';
+import '../models/ride_model.dart';
 import '../services/api_exceptions.dart';
 import '../widgets/no_internet_screen.dart';
 
@@ -12,12 +13,12 @@ class RideHistoryPage extends StatefulWidget {
 }
 
 class _RideHistoryPageState extends State<RideHistoryPage> {
-  final ApiClient _apiClient = ApiClient();
-  List<Map<String, dynamic>> _history = [];
+  final DriverApiService _driverApiService = DriverApiService();
+  List<Ride> _history = [];
 
   bool _isLoading = true;
   String? _error;
-  bool _noInternet = false; // ✅ KEY FIX
+  bool _noInternet = false;
 
   @override
   void initState() {
@@ -33,24 +34,10 @@ class _RideHistoryPageState extends State<RideHistoryPage> {
     });
 
     try {
-      final response = await _apiClient.getRideHistory();
+      final response = await _driverApiService.getRideHistory();
 
       setState(() {
-        if (response['success'] == true && response['data'] != null) {
-          final data = response['data'];
-          if (data['rides'] is List) {
-            _history = List<Map<String, dynamic>>.from(data['rides']);
-          } else {
-            _history = [];
-          }
-        } else if (response['data'] is List) {
-          _history = List<Map<String, dynamic>>.from(response['data']);
-        } else if (response['rides'] is List) {
-          _history = List<Map<String, dynamic>>.from(response['rides']);
-        } else {
-          _history = [];
-        }
-
+        _history = response.rides;
         _isLoading = false;
       });
     } catch (e) {
@@ -176,9 +163,7 @@ class _RideHistoryPageState extends State<RideHistoryPage> {
               isScrollControlled: true,
               backgroundColor: Colors.transparent,
               builder: (_) => BillSheet(
-                amount: double.tryParse(
-                    ride['total_fare']?.toString() ?? '0') ??
-                    0.0,
+                amount: ride.fare ?? 0.0,
               ),
             );
           },
@@ -191,7 +176,7 @@ class _RideHistoryPageState extends State<RideHistoryPage> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'Ride ID: ${ride['id']?.toString().substring(0, 8) ?? 'Unknown'}',
+                        'Ride ID: ${ride.id.substring(0, 8)}',
                         style: const TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.w600,
@@ -199,7 +184,7 @@ class _RideHistoryPageState extends State<RideHistoryPage> {
                       ),
                       const SizedBox(height: 6),
                       Text(
-                        '₹${ride['total_fare'] ?? '0'} • ${_formatDate(ride['requested_at'])}',
+                        '${ride.displayFare} • ${_formatDate(ride.created_at?.toIso8601String())}',
                         style: const TextStyle(
                           fontSize: 14,
                           color: Colors.grey,
@@ -209,11 +194,11 @@ class _RideHistoryPageState extends State<RideHistoryPage> {
                   ),
                 ),
                 Text(
-                  ride['status'] ?? 'Unknown',
+                  ride.displayStatus,
                   style: TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.w600,
-                    color: _getStatusColor(ride['status']),
+                    color: _getStatusColor(ride.status),
                   ),
                 ),
                 const SizedBox(width: 12),

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import '../models/driver_model.dart';
-import '../services/api_client.dart';
+import '../services/driver_api_service.dart';
 import '../services/api_exceptions.dart';
 import '../services/secure_storage_service.dart';
 import 'login_page.dart';
@@ -15,7 +15,7 @@ class ProfilePage extends StatefulWidget {
 }
 
 class _ProfilePageState extends State<ProfilePage> {
-  final ApiClient _apiClient = ApiClient();
+  final DriverApiService _driverApiService = DriverApiService();
 
   DriverProfile? _driverProfile;
   bool _isLoading = true;
@@ -36,13 +36,12 @@ class _ProfilePageState extends State<ProfilePage> {
     });
 
     try {
-      final response = await _apiClient.getDriverProfile();
-      final profileResponse = DriverProfileResponse.fromJson(response);
+      final profile = await _driverApiService.getDriverProfile();
 
       if (!mounted) return;
 
       setState(() {
-        _driverProfile = profileResponse.data.driver;
+        _driverProfile = profile;
         _isLoading = false;
       });
     } catch (e) {
@@ -70,6 +69,7 @@ class _ProfilePageState extends State<ProfilePage> {
   }
 
   Future<void> _logout() async {
+    await _driverApiService.logout();
     await SecureStorageService.logout();
 
     if (!mounted) return;
