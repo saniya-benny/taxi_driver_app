@@ -365,8 +365,8 @@ class _RideDetailSheetState extends State<_RideDetailSheet> {
               _detailRow('Customer', widget.ride.displayName),
             if (widget.ride.customer_phone != null)
               _detailRow('Phone', widget.ride.displayPhone),
-            if (widget.ride.fare != null)
-              _detailRow('Fare', widget.ride.displayFare),
+            _detailRow('Fare', widget.ride.displayFare),
+            _detailRow('Fare', widget.ride.displayFare),
 
             const SizedBox(height: 16),
 

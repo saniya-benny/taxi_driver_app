@@ -181,7 +181,7 @@ class _RideHistoryPageState extends State<RideHistoryPage> {
               isScrollControlled: true,
               backgroundColor: Colors.transparent,
               builder: (_) => BillSheet(
-                amount: ride.fare ?? 0.0,
+                amount: ride.totalFare,
               ),
             );
           },

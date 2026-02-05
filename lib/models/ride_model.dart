@@ -13,7 +13,8 @@ class Ride {
   final double? pickup_lng;
   final double? dropoff_lat;
   final double? dropoff_lng;
-  final double? fare;
+  @JsonKey(name: 'total_fare', fromJson: _doubleFromString)
+  final double totalFare;
   final String? status;
   final String? payment_status;
   final int? required_time_hours;
@@ -37,7 +38,7 @@ class Ride {
     this.pickup_lng,
     this.dropoff_lat,
     this.dropoff_lng,
-    this.fare,
+    required this.totalFare,
     this.status,
     this.payment_status,
     this.required_time_hours,
@@ -63,7 +64,7 @@ class Ride {
         pickup_lng: (json['pickup_lng'] as num?)?.toDouble(),
         dropoff_lat: (json['dropoff_lat'] as num?)?.toDouble(),
         dropoff_lng: (json['dropoff_lng'] as num?)?.toDouble(),
-        fare: (json['fare'] as num?)?.toDouble(),
+        totalFare: _doubleFromString(json['total_fare']),
         status: json['status'] as String?,
         payment_status: json['payment_status'] as String?,
         required_time_hours: json['required_time_hours'] as int?,
@@ -88,7 +89,9 @@ class Ride {
   String get displayPickupAddress => pickup_address ?? 'Pickup location';
   String get displayDropoffAddress => dropoff_address ?? 'Dropoff location';
   String get displayStatus => status ?? 'Unknown';
-  String get displayFare => fare != null ? '₹${fare!.toStringAsFixed(2)}' : '₹0.00';
+  String get displayFare => '₹${totalFare.toStringAsFixed(2)}';
+
+
 }
 
 @JsonSerializable()
@@ -227,4 +230,9 @@ String _dateTimeToJson(DateTime? date) {
   if (date == null) return '';
   // Always send UTC back to backend
   return date.toUtc().toIso8601String();
+}
+double _doubleFromString(dynamic value) {
+  if (value == null) return 0.0;
+  if (value is num) return value.toDouble();
+  return double.tryParse(value.toString()) ?? 0.0;
 }
