@@ -9,7 +9,7 @@ import 'dart:io';
 
 
 class ApiClient {
-  static const String baseUrl = "https://api.lenienttree.org";
+  static const String baseUrl = "http://taxi.13.126.46.146.nip.io";
   static const String _tokenKey = 'auth_token';
 
   static final ApiClient _instance = ApiClient._internal();

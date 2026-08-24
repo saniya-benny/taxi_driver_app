@@ -5,7 +5,7 @@ import '../models/driver_stats_model.dart';
 import 'api_exceptions.dart';
 
 class ApiService {
-  static const String baseUrl = "https://api.lenienttree.org";
+  static const String baseUrl = "http://taxi.13.126.46.146.nip.io";
   String? _token;
 
   void setToken(String token) {
